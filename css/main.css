@@ -4,21 +4,18 @@ html, body {
     height: 100%;
 }
 
-#field-container {
-    position: relative;
-    margin: 20px;
-    height: calc(100% - 40px);
-    width: calc(100% - 40px);
-}
-
-#field {
+#grid {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url("../img/grid.png") repeat;
+    background-size: 120px 120px;
+    z-index: 1000;
 }
 
-#canvas, #grid-canvas {
+#canvas {
     position: absolute;
     top: 0;
     left: 0;
