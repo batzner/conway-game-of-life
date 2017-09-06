@@ -1,0 +1,27 @@
+@import "lib/normalize.css";
+
+html, body {
+    height: 100%;
+}
+
+#field-container {
+    position: relative;
+    margin: 20px;
+    height: calc(100% - 40px);
+    width: calc(100% - 40px);
+}
+
+#field {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+#canvas, #grid-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
