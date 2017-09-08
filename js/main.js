@@ -54,6 +54,9 @@ function getNeighborsCount(cellRow, cellColumn) {
         for (let column = columnStart; column < columnEnd; column++) {
             if (FIELD[row][column] == true && !(row == cellRow && column == cellColumn)) {
                 neighborsCount += 1;
+
+                // Return early for too many neighbors
+                if (neighborsCount > 3) return neighborsCount;
             }
         }
     }
