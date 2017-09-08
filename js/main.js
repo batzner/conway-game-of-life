@@ -2,10 +2,10 @@
  * Created by Kilian on 06.09.17.
  */
 
-const CELL_WIDTH = 12;
-const CELL_HEIGHT = 12;
-const NUM_ROWS = 50;
-const NUM_COLUMNS = 100;
+const CELL_WIDTH = 48;
+const CELL_HEIGHT = 48;
+const NUM_ROWS = 12;
+const NUM_COLUMNS = 24;
 
 const FIELD = getField(NUM_ROWS, NUM_COLUMNS);
 
@@ -28,11 +28,59 @@ $(function () {
     drawField();
     createjs.Ticker.addEventListener("tick", tick);
     createjs.Ticker.setFPS(20);
+
+    // TMP
+    initGridSelector();
 });
+
+function initGridSelector() {
+    // Taken from http://interactjs.io/
+    interact("#grid-selector")
+        .draggable({
+            onmove: function (event) {
+                // Taken from http://interactjs.io/
+                const target = event.target;
+                // keep the dragged position in the data-x/data-y attributes
+                const x = (parseFloat(target.getAttribute("data-x")) || 0) + event.dx;
+                const y = (parseFloat(target.getAttribute("data-y")) || 0) + event.dy;
+
+                updateGridSelector(target, x, y, target.style.width, target.style.height);
+            }
+        })
+        .resizable({
+            edges: {left: true, right: true, bottom: true, top: true}
+        })
+        .on("resizemove", function (event) {
+            const target = event.target;
+            let x = (parseFloat(target.getAttribute("data-x")) || 0);
+            let y = (parseFloat(target.getAttribute("data-y")) || 0);
+
+            // translate when resizing from top or left edges
+            x += event.deltaRect.left;
+            y += event.deltaRect.top;
+
+            updateGridSelector(target, x, y, event.rect.width, event.rect.height);
+        });
+}
+
+function updateGridSelector(target, x, y, width, height) {
+    // Round the size, but keep the actual values stored in the data attributes
+    roundedWidth = Math.round(width / CELL_WIDTH) * CELL_WIDTH;
+    roundedHeight = Math.round(height / CELL_HEIGHT) * CELL_HEIGHT;
+    target.style.width = roundedWidth + "px";
+    target.style.height = roundedHeight + "px";
+
+    roundedX = Math.round(x / CELL_WIDTH) * CELL_WIDTH;
+    roundedY = Math.round(y / CELL_HEIGHT) * CELL_HEIGHT;
+    target.style.webkitTransform = target.style.transform =
+        "translate(" + roundedX + "px," + roundedY + "px)";
+    target.setAttribute("data-x", x);
+    target.setAttribute("data-y", y);
+}
 
 function tick() {
     // Update the field and draw it
-    for (let row =0; row < FIELD.length; row++) {
+    for (let row = 0; row < FIELD.length; row++) {
         for (let column = 0; column < FIELD[row].length; column++) {
             const neighborsCount = getNeighborsCount(row, column);
             FIELD[row][column] = neighborsCount == 3 || neighborsCount == 2 && FIELD[row][column];
@@ -43,10 +91,10 @@ function tick() {
 }
 
 function getNeighborsCount(cellRow, cellColumn) {
-    const rowStart = Math.max(cellRow-1, 0);
-    const rowEnd = Math.min(cellRow+2, NUM_ROWS);
-    const columnStart = Math.max(cellColumn-1, 0);
-    const columnEnd = Math.min(cellColumn+2, NUM_COLUMNS);
+    const rowStart = Math.max(cellRow - 1, 0);
+    const rowEnd = Math.min(cellRow + 2, NUM_ROWS);
+    const columnStart = Math.max(cellColumn - 1, 0);
+    const columnEnd = Math.min(cellColumn + 2, NUM_COLUMNS);
 
     let neighborsCount = 0;
 
@@ -64,7 +112,7 @@ function getNeighborsCount(cellRow, cellColumn) {
 }
 
 function drawField() {
-    for (let row =0; row < FIELD.length; row++) {
+    for (let row = 0; row < FIELD.length; row++) {
         for (let column = 0; column < FIELD[row].length; column++) {
             SHAPES[row][column].visible = FIELD[row][column] == true;
         }
@@ -92,7 +140,7 @@ function getShapes(stage, rows, columns) {
             // Create the shape
             const shape = new createjs.Shape();
             shape.graphics
-                .beginFill('rgba(255,0,0,0.2)')
+                .beginFill("rgba(255,0,0,0.2)")
                 .drawRect(column * CELL_WIDTH, row * CELL_HEIGHT, CELL_WIDTH, CELL_HEIGHT);
             stage.addChild(shape);
 
@@ -104,9 +152,9 @@ function getShapes(stage, rows, columns) {
 }
 
 function randomInit() {
-    for (let row =0; row < FIELD.length; row++) {
+    for (let row = 0; row < FIELD.length; row++) {
         for (let column = 0; column < FIELD[row].length; column++) {
-            FIELD[row][column] = Math.random() < 0.1;
+            FIELD[row][column] = Math.random() < 0.2;
         }
     }
 }

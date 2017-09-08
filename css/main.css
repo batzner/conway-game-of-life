@@ -10,9 +10,15 @@ html, body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: url("../img/grid.png") repeat;
-    background-size: 120px 120px;
+    background: url("../img/grid-640.png") repeat;
+    background-size: 480px 480px;
     z-index: 1000;
+}
+
+#grid-selector {
+    width: 144px;
+    height: 144px;
+    background-color: rgba(0, 0, 0, 0.3);
 }
 
 #canvas {
