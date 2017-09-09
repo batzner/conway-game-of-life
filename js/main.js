@@ -2,20 +2,25 @@
  * Created by Kilian on 06.09.17.
  */
 
-const CELL_WIDTH = 48;
-const CELL_HEIGHT = 48;
 const NUM_ROWS = 12;
 const NUM_COLUMNS = 24;
 
 const FIELD = getField(NUM_ROWS, NUM_COLUMNS);
 
+// Semi-constant variables
 let STAGE = null;
 let SHAPES = null;
+let GRID = null;
+let GRID_SELECTOR = null;
+
+let cellSize = 48;
 
 $(function () {
     // Initialize the semi-constants
     STAGE = new createjs.Stage("canvas");
     SHAPES = getShapes(STAGE, NUM_ROWS, NUM_COLUMNS);
+    GRID = $("#grid");
+    GRID_SELECTOR = $("#grid-selector");
 
     // Let the canvas fill the screen
     $("canvas").each(function (_, el) {
@@ -38,44 +43,100 @@ function initGridSelector() {
     interact("#grid-selector")
         .draggable({
             onmove: function (event) {
-                // Taken from http://interactjs.io/
-                const target = event.target;
-                // keep the dragged position in the data-x/data-y attributes
-                const x = (parseFloat(target.getAttribute("data-x")) || 0) + event.dx;
-                const y = (parseFloat(target.getAttribute("data-y")) || 0) + event.dy;
+                // Get the current (not rounded) position
+                let x = parseFloat(GRID_SELECTOR.attr("data-x")) || GRID_SELECTOR.position().left;
+                let y = parseFloat(GRID_SELECTOR.attr("data-y")) || GRID_SELECTOR.position().top;
 
-                updateGridSelector(target, x, y, target.style.width, target.style.height);
+                // Change the desired (not rounded) position
+                x += event.dx;
+                y += event.dy;
+
+                // Store the desired position in the data-x/data-y attributes and align the grid
+                GRID_SELECTOR.attr("data-x", x);
+                GRID_SELECTOR.attr("data-y", y);
+                alignGridSelector();
             }
         })
         .resizable({
-            edges: {left: true, right: true, bottom: true, top: true}
+            edges: {left: false, right: true, bottom: true, top: false}
         })
         .on("resizemove", function (event) {
-            const target = event.target;
-            let x = (parseFloat(target.getAttribute("data-x")) || 0);
-            let y = (parseFloat(target.getAttribute("data-y")) || 0);
+            // If the rect exceeds the visible grid, increase the visible grid
+            if (event.rect.right >= GRID.width() || event.rect.bottom >= GRID.height()) {
+                increaseGrid();
+            }
+            // Get the current (not rounded) position
+            let width = parseFloat(GRID_SELECTOR.attr("data-width")) || GRID_SELECTOR.width();
+            let height = parseFloat(GRID_SELECTOR.attr("data-height")) || GRID_SELECTOR.height();
 
-            // translate when resizing from top or left edges
-            x += event.deltaRect.left;
-            y += event.deltaRect.top;
+            // Change the desired (not rounded) position
+            width += event.dx;
+            height += event.dy;
 
-            updateGridSelector(target, x, y, event.rect.width, event.rect.height);
+            // Store the desired position in the data-x/data-y attributes and align the grid
+            GRID_SELECTOR.attr("data-width", width);
+            GRID_SELECTOR.attr("data-height", height);
+            alignGridSelector();
         });
 }
 
-function updateGridSelector(target, x, y, width, height) {
-    // Round the size, but keep the actual values stored in the data attributes
-    roundedWidth = Math.round(width / CELL_WIDTH) * CELL_WIDTH;
-    roundedHeight = Math.round(height / CELL_HEIGHT) * CELL_HEIGHT;
-    target.style.width = roundedWidth + "px";
-    target.style.height = roundedHeight + "px";
+function increaseGrid() {
+    // Keep the top left grid selector edge at the same column and row.
+    let x = parseFloat(GRID_SELECTOR.attr("data-x")) || GRID_SELECTOR.position().left;
+    let y = parseFloat(GRID_SELECTOR.attr("data-y")) || GRID_SELECTOR.position().top;
+    let gridColumn = Math.round(x / cellSize);
+    let gridRow = Math.round(y / cellSize);
 
-    roundedX = Math.round(x / CELL_WIDTH) * CELL_WIDTH;
-    roundedY = Math.round(y / CELL_HEIGHT) * CELL_HEIGHT;
-    target.style.webkitTransform = target.style.transform =
-        "translate(" + roundedX + "px," + roundedY + "px)";
-    target.setAttribute("data-x", x);
-    target.setAttribute("data-y", y);
+    // Change the grid
+    cellSize = Math.max(cellSize - 0.5, 4);
+    const styleVal = cellSize * 10 + "px " + cellSize * 10 + "px";
+    GRID.css("background-size", styleVal);
+
+    // Update the grid selector x and y attributes to keep the same column and row
+    let newX = gridColumn * cellSize;
+    let newY = gridRow * cellSize;
+    GRID_SELECTOR.attr("data-x", newX);
+    GRID_SELECTOR.attr("data-y", newY);
+
+    // We need to change the width and the height by the negative change of x and y to make sure
+    // the bottom right edge stays at the cursor during the resizing
+    let width = parseFloat(GRID_SELECTOR.attr("data-width")) || GRID_SELECTOR.width();
+    let height = parseFloat(GRID_SELECTOR.attr("data-height")) || GRID_SELECTOR.height();
+    GRID_SELECTOR.attr("data-width", width - (newX - x));
+    GRID_SELECTOR.attr("data-height", height - (newY - y));
+
+    alignGridSelector();
+}
+
+function alignGridSelector() {
+    // Get the desired position
+    const x = parseFloat(GRID_SELECTOR.attr("data-x")) || GRID_SELECTOR.position().left;
+    const y = parseFloat(GRID_SELECTOR.attr("data-y")) || GRID_SELECTOR.position().top;
+    const width = parseFloat(GRID_SELECTOR.attr("data-width")) || GRID_SELECTOR.width();
+    const height = parseFloat(GRID_SELECTOR.attr("data-height")) || GRID_SELECTOR.height();
+
+    // Align the position to the grid
+    let roundedX = Math.round(x / cellSize) * cellSize;
+    let roundedY = Math.round(y / cellSize) * cellSize;
+    let roundedWidth = Math.round(width / cellSize) * cellSize;
+    let roundedHeight = Math.round(height / cellSize) * cellSize;
+
+    // Stay within the grid
+    let rightLimit = Math.round(GRID.width() / cellSize) * cellSize;
+    let bottomLimit = Math.round(GRID.height() / cellSize) * cellSize;
+
+    // Lower bounds
+    roundedWidth = Math.max(roundedWidth, 0);
+    roundedHeight = Math.max(roundedHeight, 0);
+
+    // Upper bounds
+    roundedWidth = Math.min(rightLimit - roundedX, roundedWidth);
+    roundedHeight = Math.min(bottomLimit - roundedY, roundedHeight);
+
+    GRID_SELECTOR.width(roundedWidth);
+    GRID_SELECTOR.height(roundedHeight);
+    GRID_SELECTOR.css("webkitTransform", "translate(" + roundedX + "px," + roundedY + "px)");
+    GRID_SELECTOR.css("transform", GRID_SELECTOR.css("webkitTransform"));
 }
 
 function tick() {
@@ -141,7 +202,7 @@ function getShapes(stage, rows, columns) {
             const shape = new createjs.Shape();
             shape.graphics
                 .beginFill("rgba(255,0,0,0.2)")
-                .drawRect(column * CELL_WIDTH, row * CELL_HEIGHT, CELL_WIDTH, CELL_HEIGHT);
+                .drawRect(column * cellSize, row * cellSize, cellSize, cellSize);
             stage.addChild(shape);
 
             shapesRow.push(shape);
