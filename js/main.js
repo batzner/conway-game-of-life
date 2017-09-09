@@ -2,6 +2,9 @@
  * Created by Kilian on 06.09.17.
  */
 
+// Constants
+const CELL_COLOR = "#3F51B5";//  "#FF4081";
+
 // Semi-constant variables
 let STAGE = null;
 let GRID = null;
@@ -11,7 +14,7 @@ let GRID_SELECTOR_SIBLINGS = {
 };
 
 // Global variables
-let cellSize = 48;
+let cellSize = 24;
 let field = null;
 let shapes = null;
 
@@ -32,19 +35,35 @@ $(function () {
         canvas.height = $(window).height();
     });
 
+    // Calculate the number of cell that fit on the screen
+    let numColumns = Math.floor(GRID.width() / cellSize);
+    let numRows = Math.floor(GRID.height() / cellSize);
+
     // Initialize the game objects
-    field = getField(5, 10);
-    shapes = getShapes(STAGE, getNumRows(), getNumColumns());
+    field = getField(numRows, numColumns);
+    shapes = getShapes(STAGE, numRows, numColumns);
+
+    // Initialize the menu
+    $("#pause-resume-button").click(togglePauseResume);
+
+    // Initialize the grid
+    const styleVal = cellSize * 10 + "px " + cellSize * 10 + "px";
+    GRID.css("background-size", styleVal);
+    initGridSelector();
 
     // Start the game
     randomInit();
     drawField();
     createjs.Ticker.addEventListener("tick", tick);
-    createjs.Ticker.setFPS(20);
-
-    // TMP
-    initGridSelector();
+    createjs.Ticker.setFPS(10);
 });
+
+function togglePauseResume() {
+    let button = $("#pause-resume-button");
+    createjs.Ticker.paused = !createjs.Ticker.paused;
+    let icon = createjs.Ticker.paused ? "play_arrow" : "pause";
+    button.find(".material-icons").first().html(icon);
+}
 
 function getNumRows() {
     return field.length;
@@ -55,10 +74,10 @@ function getNumColumns() {
 }
 
 function initGridSelector() {
-    GRID_SELECTOR.attr("data-width", 10);
-    GRID_SELECTOR.attr("data-height", 5);
-    GRID_SELECTOR.attr("data-x", 1);
-    GRID_SELECTOR.attr("data-y", 2);
+    GRID_SELECTOR.attr("data-x", 0);
+    GRID_SELECTOR.attr("data-y", 0);
+    GRID_SELECTOR.attr("data-width", getNumColumns());
+    GRID_SELECTOR.attr("data-height", getNumRows());
 
     alignGridSelector();
 
@@ -155,7 +174,9 @@ function updateGridSelector(width, height, x, y) {
     GRID_SELECTOR_SIBLINGS.right.height(height);
 }
 
-function tick() {
+function tick(event) {
+    if (event.paused) return;
+
     // Update the field and draw it
     for (let row = 0; row < getNumRows(); row++) {
         for (let column = 0; column < getNumColumns(); column++) {
@@ -197,11 +218,11 @@ function drawField() {
     STAGE.update();
 }
 
-function getField(rows, columns) {
+function getField(numRows, numColumns) {
     let field = [];
-    for (let row = 0; row < rows; row++) {
+    for (let row = 0; row < numRows; row++) {
         let entriesRow = [];
-        for (let column = 0; column < columns; column++) {
+        for (let column = 0; column < numColumns; column++) {
             entriesRow.push(false);
         }
         field.push(entriesRow);
@@ -217,7 +238,7 @@ function getShapes(stage, rows, columns) {
             // Create the shape
             const shape = new createjs.Shape();
             shape.graphics
-                .beginFill("rgba(255,0,0,0.2)")
+                .beginFill(CELL_COLOR)
                 .drawRect(column * cellSize, row * cellSize, cellSize, cellSize);
             stage.addChild(shape);
 
@@ -231,7 +252,7 @@ function getShapes(stage, rows, columns) {
 function randomInit() {
     for (let row = 0; row < getNumRows(); row++) {
         for (let column = 0; column < getNumColumns(); column++) {
-            field[row][column] = Math.random() < 0.2;
+            field[row][column] = Math.random() < 0.1;
         }
     }
 }

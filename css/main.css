@@ -12,7 +12,6 @@ html, body {
     bottom: 0;
     background: url("../img/grid-640.png") repeat;
     background-size: 480px 480px;
-    z-index: 1000;
 }
 
 #grid-selector {
@@ -30,4 +29,17 @@ html, body {
     left: 0;
     right: 0;
     bottom: 0;
+}
+
+.app-fab--absolute {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+}
+
+@media (min-width: 1024px) {
+    .app-fab--absolute {
+        bottom: 1.5rem;
+        right: 1.5rem;
+    }
 }

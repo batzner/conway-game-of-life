@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <title>Conway's Game of Life</title>
 
+    <link rel="stylesheet" href="node_modules/material-components-web/dist/material-components-web.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+
     <link rel="stylesheet" type="text/css" href="css/main.css">
 </head>
 <body>
@@ -16,10 +19,19 @@
     <div id="grid-selector-bottom" class="grid-selector-sibling"></div>
     <div id="grid-selector-left" class="grid-selector-sibling"></div>
 </div>
+
+<button id="pause-resume-button" class="mdc-fab app-fab--absolute" aria-label="Edit" data-mdc-auto-init="MDCRipple">
+    <i class="material-icons">pause</i>
+</button>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.slim.min.js" type="text/javascript"></script>
 <script src="https://rawgit.com/CreateJS/EaselJS/master/lib/easeljs-0.8.2.combined.js" type="text/javascript"></script>
 <script src="http://code.interactjs.io/v1.2.9/interact.js" type="text/javascript"></script>
-<script src="js/lib/rough/rough.js" type="text/javascript"></script>
+
+<!-- Material Design -->
+<script src="node_modules/material-components-web/dist/material-components-web.js"></script>
+<script>mdc.autoInit()</script>
+
 <script src="js/main.js" type="text/javascript"></script>
 </body>
 </html>
