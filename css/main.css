@@ -16,9 +16,12 @@ html, body {
 }
 
 #grid-selector {
-    width: 144px;
-    height: 144px;
-    background-color: rgba(0, 0, 0, 0.3);
+    position: absolute;
+}
+
+.grid-selector-sibling {
+    position: absolute;
+    background-color: rgba(255, 255, 255, 0.9);
 }
 
 #canvas {

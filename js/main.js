@@ -6,6 +6,9 @@
 let STAGE = null;
 let GRID = null;
 let GRID_SELECTOR = null;
+let GRID_SELECTOR_SIBLINGS = {
+    top: null, right: null, bottom: null, left: null
+};
 
 // Global variables
 let cellSize = 48;
@@ -17,6 +20,10 @@ $(function () {
     STAGE = new createjs.Stage("canvas");
     GRID = $("#grid");
     GRID_SELECTOR = $("#grid-selector");
+    GRID_SELECTOR_SIBLINGS.top = $("#grid-selector-top");
+    GRID_SELECTOR_SIBLINGS.right = $("#grid-selector-right");
+    GRID_SELECTOR_SIBLINGS.bottom = $("#grid-selector-bottom");
+    GRID_SELECTOR_SIBLINGS.left = $("#grid-selector-left");
 
     // Let the canvas fill the screen
     $("canvas").each(function (_, el) {
@@ -48,10 +55,12 @@ function getNumColumns() {
 }
 
 function initGridSelector() {
-    GRID_SELECTOR.attr("data-width", GRID_SELECTOR.width() / cellSize);
-    GRID_SELECTOR.attr("data-height", GRID_SELECTOR.height() / cellSize);
-    GRID_SELECTOR.attr("data-x", GRID_SELECTOR.position().left / cellSize);
-    GRID_SELECTOR.attr("data-y", GRID_SELECTOR.position().top / cellSize);
+    GRID_SELECTOR.attr("data-width", 10);
+    GRID_SELECTOR.attr("data-height", 5);
+    GRID_SELECTOR.attr("data-x", 1);
+    GRID_SELECTOR.attr("data-y", 2);
+
+    alignGridSelector();
 
     // Taken from http://interactjs.io/
     interact("#grid-selector")
@@ -125,13 +134,25 @@ function alignGridSelector() {
     // Upper bounds
     roundedWidth = Math.min(rightLimit - roundedX, roundedWidth);
     roundedHeight = Math.min(bottomLimit - roundedY, roundedHeight);
+    updateGridSelector(roundedWidth * cellSize, roundedHeight * cellSize, roundedX * cellSize,
+        roundedY * cellSize);
+}
 
-    GRID_SELECTOR.width(roundedWidth * cellSize);
-    GRID_SELECTOR.height(roundedHeight * cellSize);
-    GRID_SELECTOR.css("webkitTransform", "translate("
-        + (roundedX * cellSize) + "px,"
-        + (roundedY * cellSize) + "px)");
-    GRID_SELECTOR.css("transform", GRID_SELECTOR.css("webkitTransform"));
+function updateGridSelector(width, height, x, y) {
+    GRID_SELECTOR.width(width);
+    GRID_SELECTOR.height(height);
+    GRID_SELECTOR.css({"left": x, "top": y});
+
+    // Update the siblings of the selector
+    GRID_SELECTOR_SIBLINGS.top.css({"top": 0, "right": 0, "left": 0});
+    GRID_SELECTOR_SIBLINGS.top.height(y);
+    GRID_SELECTOR_SIBLINGS.bottom.css({"top": y + height, "right": 0, "bottom": 0, "left": 0});
+
+    GRID_SELECTOR_SIBLINGS.left.css({"top": y, "left": 0});
+    GRID_SELECTOR_SIBLINGS.left.width(x);
+    GRID_SELECTOR_SIBLINGS.left.height(height);
+    GRID_SELECTOR_SIBLINGS.right.css({"top": y, "right": 0, "left": x + width});
+    GRID_SELECTOR_SIBLINGS.right.height(height);
 }
 
 function tick() {
