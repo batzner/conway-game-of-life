@@ -14,7 +14,7 @@ let GRID_SELECTOR_SIBLINGS = {
 };
 
 // Global variables
-let cellSize = 24;
+let cellSize = 12;
 let field = null;
 let shapes = null;
 
@@ -45,6 +45,10 @@ $(function () {
 
     // Initialize the menu
     $("#pause-resume-button").click(togglePauseResume);
+    $("#next-step-button").click(function() {
+        if (!createjs.Ticker.paused) togglePauseResume();
+        tick();
+    });
 
     // Initialize the grid
     const styleVal = cellSize * 10 + "px " + cellSize * 10 + "px";
@@ -54,7 +58,9 @@ $(function () {
     // Start the game
     randomInit();
     drawField();
-    createjs.Ticker.addEventListener("tick", tick);
+    createjs.Ticker.addEventListener("tick", function(event) {
+        if (!event.paused) tick();
+    });
     createjs.Ticker.setFPS(10);
 });
 
@@ -174,17 +180,19 @@ function updateGridSelector(width, height, x, y) {
     GRID_SELECTOR_SIBLINGS.right.height(height);
 }
 
-function tick(event) {
-    if (event.paused) return;
-
+function tick() {
     // Update the field and draw it
+    let newField = [];
     for (let row = 0; row < getNumRows(); row++) {
+        let newRow = [];
         for (let column = 0; column < getNumColumns(); column++) {
             const neighborsCount = getNeighborsCount(row, column);
-            field[row][column] = neighborsCount == 3 || neighborsCount == 2 && field[row][column];
+            const willBeAlive = neighborsCount == 3 || neighborsCount == 2 && field[row][column];
+            newRow.push(willBeAlive);
         }
+        newField.push(newRow)
     }
-
+    field = newField;
     drawField();
 }
 

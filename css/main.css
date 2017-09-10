@@ -11,7 +11,7 @@ html, body {
     right: 0;
     bottom: 0;
     background: url("../img/grid-640.png") repeat;
-    background-size: 480px 480px;
+    background-size: 4px 4px;
 }
 
 #grid-selector {
@@ -31,14 +31,23 @@ html, body {
     bottom: 0;
 }
 
-.app-fab--absolute {
+#controls {
     position: fixed;
     bottom: 1rem;
     right: 1rem;
 }
 
+#controls button {
+    margin:0 auto;
+    display:block;
+}
+
+#controls button:not(:first-child){
+    margin-top: 15px;
+}
+
 @media (min-width: 1024px) {
-    .app-fab--absolute {
+    #controls {
         bottom: 1.5rem;
         right: 1.5rem;
     }

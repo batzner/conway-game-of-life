@@ -6,6 +6,7 @@
 
     <link rel="stylesheet" href="node_modules/material-components-web/dist/material-components-web.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-beta/css/bootstrap.min.css">
 
     <link rel="stylesheet" type="text/css" href="css/main.css">
 </head>
@@ -20,9 +21,19 @@
     <div id="grid-selector-left" class="grid-selector-sibling"></div>
 </div>
 
-<button id="pause-resume-button" class="mdc-fab app-fab--absolute" aria-label="Edit" data-mdc-auto-init="MDCRipple">
-    <i class="material-icons">pause</i>
-</button>
+<div id="controls">
+
+    <button id="pause-resume-button" class="mdc-fab mdc-fab--mini" aria-label="Pause or Resume" data-mdc-auto-init="MDCRipple">
+        <i class="material-icons">pause</i>
+    </button>
+
+    <button id="next-step-button" class="mdc-fab mdc-fab--mini" aria-label="Next Step" data-mdc-auto-init="MDCRipple">
+        <i class="material-icons">chevron_right</i>
+    </button>
+    <button id="menu-button" class="mdc-fab" aria-label="Menu" data-mdc-auto-init="MDCRipple">
+        <i class="material-icons">menu</i>
+    </button>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.slim.min.js" type="text/javascript"></script>
 <script src="https://rawgit.com/CreateJS/EaselJS/master/lib/easeljs-0.8.2.combined.js" type="text/javascript"></script>
