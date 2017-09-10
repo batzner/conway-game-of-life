@@ -55,6 +55,10 @@ html, body {
     bottom: 0;
 }
 
+.no-focus:focus, .no-focus:active {
+    background: none !important;
+}
+
 .mdc-list-item {
     height: inherit;
     min-height: 48px;
@@ -70,4 +74,9 @@ html, body {
 
 .mdc-slider {
     margin: -10px 0;
+}
+
+.mdc-form-field label {
+    margin-bottom: 0;
+    font-size: 1rem;
 }

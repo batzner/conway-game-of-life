@@ -5,6 +5,11 @@
 // Imports
 const {MDCSlider} = mdc.slider;
 
+// Util functions
+Number.prototype.mod = function (n) {
+    return ((this % n) + n) % n;
+};
+
 // Constants
 const CELL_COLOR = '#3F51B5';//  '#FF4081';
 
@@ -21,6 +26,7 @@ let MENU = null;
 let cellSize = 12;
 let field = null;
 let shapes = null;
+let infiniteEdges = true;
 
 $(function () {
     // Initialize the semi-constants
@@ -53,15 +59,23 @@ $(function () {
 
     // Initialize the slider before hiding the menu, otherwise the initialization will fail
     const slider = new MDCSlider(document.querySelector('.mdc-slider'));
-    slider.listen('MDCSlider:change', () => createjs.Ticker.setFPS(slider.value));
-
+    slider.listen('MDCSlider:input', () => createjs.Ticker.setFPS(slider.value));
     MENU.hide();
+
+    // Initialize the checkboxes
+    mdc.checkbox.MDCCheckbox.attachTo(document.querySelector('.mdc-checkbox'));
+    const infiniteEdgesCheckbox = $('#infinite-edges-checkbox');
+    infiniteEdgesCheckbox.prop('checked', infiniteEdges);
+    infiniteEdgesCheckbox.click(function () {
+        infiniteEdges = infiniteEdgesCheckbox.prop('checked');
+    });
+
     // Hide the menu on outside clicks
-    $(document).click(function(event) {
+    $(document).click(function (event) {
         // Exclude clicks within the menu or on the menu button
         const target = $(event.target);
-        if(!target.closest('#menu-button').length && !target.closest('#menu').length) {
-            if(MENU.is(':visible')) MENU.hide();
+        if (!target.closest('#menu-button').length && !target.closest('#menu').length) {
+            if (MENU.is(':visible')) MENU.hide();
         }
     });
 
@@ -70,7 +84,7 @@ $(function () {
         MENU.show('fast');
     });
     $('#pause-resume-button').click(togglePauseResume);
-    $('#next-step-button').click(function() {
+    $('#next-step-button').click(function () {
         if (!createjs.Ticker.paused) togglePauseResume();
         tick();
     });
@@ -83,7 +97,7 @@ $(function () {
     // Start the game
     randomInit();
     drawField();
-    createjs.Ticker.addEventListener('tick', function(event) {
+    createjs.Ticker.addEventListener('tick', function (event) {
         if (!event.paused) tick();
     });
     createjs.Ticker.setFPS(10);
@@ -222,15 +236,21 @@ function tick() {
 }
 
 function getNeighborsCount(cellRow, cellColumn) {
-    const rowStart = Math.max(cellRow - 1, 0);
-    const rowEnd = Math.min(cellRow + 2, getNumRows());
-    const columnStart = Math.max(cellColumn - 1, 0);
-    const columnEnd = Math.min(cellColumn + 2, getNumColumns());
+    const rowIndices = [cellRow - 1, cellRow, cellRow + 1];
+    const columnIndices = [cellColumn - 1, cellColumn, cellColumn + 1];
 
     let neighborsCount = 0;
+    for (let rowIndex of rowIndices) {
+        // Handle out of bounds cases
+        if (!infiniteEdges && (rowIndex < 0 || rowIndex >= getNumRows())) continue;
+        let row = rowIndex.mod(getNumRows());
 
-    for (let row = rowStart; row < rowEnd; row++) {
-        for (let column = columnStart; column < columnEnd; column++) {
+        for (let columnIndex of columnIndices) {
+            // Handle out of bounds cases
+            if (!infiniteEdges && (columnIndex < 0 || columnIndex >= getNumColumns())) continue;
+            let column = columnIndex.mod(getNumColumns());
+
+            // Check the neighbor
             if (field[row][column] == true && !(row == cellRow && column == cellColumn)) {
                 neighborsCount += 1;
 
