@@ -25,6 +25,25 @@
     <div id="menu" class="mdc-simple-menu">
         <ul class="mdc-list">
             <li class="mdc-list-item no-focus">
+                <div>
+                    <span>Speed</span>
+                    <div class="mdc-slider" tabindex="0" role="slider"
+                         aria-valuemin="1" aria-valuemax="10" aria-valuenow="5"
+                         aria-label="Select Speed">
+                        <div class="mdc-slider__track-container">
+                            <div class="mdc-slider__track"></div>
+                        </div>
+                        <div class="mdc-slider__thumb-container">
+                            <svg class="mdc-slider__thumb" width="21" height="21">
+                                <circle cx="10.5" cy="10.5" r="7.875"></circle>
+                            </svg>
+                            <div class="mdc-slider__focus-ring"></div>
+                        </div>
+                    </div>
+                </div>
+            </li>
+            <li class="mdc-list-divider" role="separator"></li>
+            <li class="mdc-list-item no-focus">
                 <div class="mdc-form-field">
                     <div class="mdc-checkbox">
                         <input type="checkbox"
@@ -47,21 +66,24 @@
             </li>
             <li class="mdc-list-divider" role="separator"></li>
             <li class="mdc-list-item no-focus">
-                <div>
-                    <span>Speed</span>
-                    <div class="mdc-slider" tabindex="0" role="slider"
-                         aria-valuemin="1" aria-valuemax="10" aria-valuenow="5"
-                         aria-label="Select Speed">
-                        <div class="mdc-slider__track-container">
-                            <div class="mdc-slider__track"></div>
-                        </div>
-                        <div class="mdc-slider__thumb-container">
-                            <svg class="mdc-slider__thumb" width="21" height="21">
-                                <circle cx="10.5" cy="10.5" r="7.875"></circle>
+                <div class="mdc-form-field">
+                    <div class="mdc-checkbox">
+                        <input type="checkbox"
+                               id="incremental-updates-checkbox"
+                               class="mdc-checkbox__native-control"/>
+                        <div class="mdc-checkbox__background">
+                            <svg class="mdc-checkbox__checkmark"
+                                 viewBox="0 0 24 24">
+                                <path class="mdc-checkbox__checkmark__path"
+                                      fill="none"
+                                      stroke="white"
+                                      d="M1.73,12.91 8.1,19.28 22.79,4.59"></path>
                             </svg>
-                            <div class="mdc-slider__focus-ring"></div>
+                            <div class="mdc-checkbox__mixedmark"></div>
                         </div>
                     </div>
+
+                    <label for="incremental-updates-checkbox">Incremental Cell Updates</label>
                 </div>
             </li>
             <li class="mdc-list-divider" role="separator"></li>

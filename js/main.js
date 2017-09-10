@@ -27,6 +27,7 @@ let cellSize = 12;
 let field = null;
 let shapes = null;
 let infiniteEdges = true;
+let incrementalUpdates = false;
 
 $(function () {
     // Initialize the semi-constants
@@ -64,10 +65,17 @@ $(function () {
 
     // Initialize the checkboxes
     mdc.checkbox.MDCCheckbox.attachTo(document.querySelector('.mdc-checkbox'));
+
     const infiniteEdgesCheckbox = $('#infinite-edges-checkbox');
     infiniteEdgesCheckbox.prop('checked', infiniteEdges);
     infiniteEdgesCheckbox.click(function () {
         infiniteEdges = infiniteEdgesCheckbox.prop('checked');
+    });
+
+    const incrementalUpdatesCheckbox = $('#incremental-updates-checkbox');
+    incrementalUpdatesCheckbox.prop('checked', incrementalUpdates);
+    incrementalUpdatesCheckbox.click(function () {
+        incrementalUpdates = incrementalUpdatesCheckbox.prop('checked');
     });
 
     // Hide the menu on outside clicks
@@ -228,6 +236,9 @@ function tick() {
             const neighborsCount = getNeighborsCount(row, column);
             const willBeAlive = neighborsCount == 3 || neighborsCount == 2 && field[row][column];
             newRow.push(willBeAlive);
+
+            // Incremental cell updates that can be used by the following cells
+            if (incrementalUpdates) field[row][column] = willBeAlive;
         }
         newField.push(newRow)
     }
