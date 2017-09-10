@@ -38,12 +38,8 @@ html, body {
 }
 
 #controls button {
-    margin:0 auto;
     display:block;
-}
-
-#controls button:not(:first-child){
-    margin-top: 15px;
+    margin: 15px auto 0;
 }
 
 @media (min-width: 1024px) {
@@ -51,4 +47,27 @@ html, body {
         bottom: 1.5rem;
         right: 1.5rem;
     }
+}
+
+#menu {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+}
+
+.mdc-list-item {
+    height: inherit;
+    min-height: 48px;
+}
+
+.mdc-simple-menu .mdc-list-item {
+    padding: 8px 16px;
+}
+
+.mdc-list-item > div {
+    width: 100%;
+}
+
+.mdc-slider {
+    margin: -10px 0;
 }

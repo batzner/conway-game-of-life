@@ -2,8 +2,11 @@
  * Created by Kilian on 06.09.17.
  */
 
+// Imports
+const {MDCSlider} = mdc.slider;
+
 // Constants
-const CELL_COLOR = "#3F51B5";//  "#FF4081";
+const CELL_COLOR = '#3F51B5';//  '#FF4081';
 
 // Semi-constant variables
 let STAGE = null;
@@ -12,6 +15,7 @@ let GRID_SELECTOR = null;
 let GRID_SELECTOR_SIBLINGS = {
     top: null, right: null, bottom: null, left: null
 };
+let MENU = null;
 
 // Global variables
 let cellSize = 12;
@@ -20,17 +24,18 @@ let shapes = null;
 
 $(function () {
     // Initialize the semi-constants
-    STAGE = new createjs.Stage("canvas");
-    GRID = $("#grid");
-    GRID_SELECTOR = $("#grid-selector");
-    GRID_SELECTOR_SIBLINGS.top = $("#grid-selector-top");
-    GRID_SELECTOR_SIBLINGS.right = $("#grid-selector-right");
-    GRID_SELECTOR_SIBLINGS.bottom = $("#grid-selector-bottom");
-    GRID_SELECTOR_SIBLINGS.left = $("#grid-selector-left");
+    STAGE = new createjs.Stage('canvas');
+    GRID = $('#grid');
+    GRID_SELECTOR = $('#grid-selector');
+    GRID_SELECTOR_SIBLINGS.top = $('#grid-selector-top');
+    GRID_SELECTOR_SIBLINGS.right = $('#grid-selector-right');
+    GRID_SELECTOR_SIBLINGS.bottom = $('#grid-selector-bottom');
+    GRID_SELECTOR_SIBLINGS.left = $('#grid-selector-left');
+    MENU = $('#menu');
 
     // Let the canvas fill the screen
-    $("canvas").each(function (_, el) {
-        const canvas = el.getContext("2d").canvas;
+    $('canvas').each(function (_, el) {
+        const canvas = el.getContext('2d').canvas;
         canvas.width = $(window).width();
         canvas.height = $(window).height();
     });
@@ -44,31 +49,51 @@ $(function () {
     shapes = getShapes(STAGE, numRows, numColumns);
 
     // Initialize the menu
-    $("#pause-resume-button").click(togglePauseResume);
-    $("#next-step-button").click(function() {
+    MENU.addClass('mdc-simple-menu--open');
+
+    // Initialize the slider before hiding the menu, otherwise the initialization will fail
+    const slider = new MDCSlider(document.querySelector('.mdc-slider'));
+    slider.listen('MDCSlider:change', () => createjs.Ticker.setFPS(slider.value));
+
+    MENU.hide();
+    // Hide the menu on outside clicks
+    $(document).click(function(event) {
+        // Exclude clicks within the menu or on the menu button
+        const target = $(event.target);
+        if(!target.closest('#menu-button').length && !target.closest('#menu').length) {
+            if(MENU.is(':visible')) MENU.hide();
+        }
+    });
+
+    // Initialize the buttons
+    $('#menu-button').click(() => {
+        MENU.show('fast');
+    });
+    $('#pause-resume-button').click(togglePauseResume);
+    $('#next-step-button').click(function() {
         if (!createjs.Ticker.paused) togglePauseResume();
         tick();
     });
 
     // Initialize the grid
-    const styleVal = cellSize * 10 + "px " + cellSize * 10 + "px";
-    GRID.css("background-size", styleVal);
+    const styleVal = cellSize * 10 + 'px ' + cellSize * 10 + 'px';
+    GRID.css('background-size', styleVal);
     initGridSelector();
 
     // Start the game
     randomInit();
     drawField();
-    createjs.Ticker.addEventListener("tick", function(event) {
+    createjs.Ticker.addEventListener('tick', function(event) {
         if (!event.paused) tick();
     });
     createjs.Ticker.setFPS(10);
 });
 
 function togglePauseResume() {
-    let button = $("#pause-resume-button");
+    let button = $('#pause-resume-button');
     createjs.Ticker.paused = !createjs.Ticker.paused;
-    let icon = createjs.Ticker.paused ? "play_arrow" : "pause";
-    button.find(".material-icons").first().html(icon);
+    let icon = createjs.Ticker.paused ? 'play_arrow' : 'pause';
+    button.find('.material-icons').first().html(icon);
 }
 
 function getNumRows() {
@@ -80,50 +105,50 @@ function getNumColumns() {
 }
 
 function initGridSelector() {
-    GRID_SELECTOR.attr("data-x", 0);
-    GRID_SELECTOR.attr("data-y", 0);
-    GRID_SELECTOR.attr("data-width", getNumColumns());
-    GRID_SELECTOR.attr("data-height", getNumRows());
+    GRID_SELECTOR.attr('data-x', 0);
+    GRID_SELECTOR.attr('data-y', 0);
+    GRID_SELECTOR.attr('data-width', getNumColumns());
+    GRID_SELECTOR.attr('data-height', getNumRows());
 
     alignGridSelector();
 
     // Taken from http://interactjs.io/
-    interact("#grid-selector")
+    interact('#grid-selector')
         .draggable({
             onmove: function (event) {
                 // Get the current (not rounded) position
-                let x = parseFloat(GRID_SELECTOR.attr("data-x"));
-                let y = parseFloat(GRID_SELECTOR.attr("data-y"));
+                let x = parseFloat(GRID_SELECTOR.attr('data-x'));
+                let y = parseFloat(GRID_SELECTOR.attr('data-y'));
 
                 // Change the desired (not rounded) position
                 x += event.dx / cellSize;
                 y += event.dy / cellSize;
 
                 // Store the desired position in the data-x/data-y attributes and align the grid
-                GRID_SELECTOR.attr("data-x", x);
-                GRID_SELECTOR.attr("data-y", y);
+                GRID_SELECTOR.attr('data-x', x);
+                GRID_SELECTOR.attr('data-y', y);
                 alignGridSelector();
             }
         })
         .resizable({
             edges: {left: false, right: true, bottom: true, top: false}
         })
-        .on("resizemove", function (event) {
+        .on('resizemove', function (event) {
             // If the rect exceeds the visible grid, increase the visible grid
             if (event.rect.right >= GRID.width() || event.rect.bottom >= GRID.height()) {
                 increaseGrid();
             }
             // Get the current (not rounded) position
-            let x = parseFloat(GRID_SELECTOR.attr("data-x"));
-            let y = parseFloat(GRID_SELECTOR.attr("data-y"));
+            let x = parseFloat(GRID_SELECTOR.attr('data-x'));
+            let y = parseFloat(GRID_SELECTOR.attr('data-y'));
 
             // Change the desired (not rounded) position
             let width = (event.rect.right / cellSize) - x;
             let height = (event.rect.bottom / cellSize) - y;
 
             // Store the desired position in the data-x/data-y attributes and align the grid
-            GRID_SELECTOR.attr("data-width", width);
-            GRID_SELECTOR.attr("data-height", height);
+            GRID_SELECTOR.attr('data-width', width);
+            GRID_SELECTOR.attr('data-height', height);
             alignGridSelector();
         });
 }
@@ -131,16 +156,16 @@ function initGridSelector() {
 function increaseGrid() {
     // Change the grid
     cellSize = Math.max(cellSize - 0.5, 4);
-    const styleVal = cellSize * 10 + "px " + cellSize * 10 + "px";
-    GRID.css("background-size", styleVal);
+    const styleVal = cellSize * 10 + 'px ' + cellSize * 10 + 'px';
+    GRID.css('background-size', styleVal);
 }
 
 function alignGridSelector() {
     // Get the desired position
-    const x = parseFloat(GRID_SELECTOR.attr("data-x"));
-    const y = parseFloat(GRID_SELECTOR.attr("data-y"));
-    const width = parseFloat(GRID_SELECTOR.attr("data-width"));
-    const height = parseFloat(GRID_SELECTOR.attr("data-height"));
+    const x = parseFloat(GRID_SELECTOR.attr('data-x'));
+    const y = parseFloat(GRID_SELECTOR.attr('data-y'));
+    const width = parseFloat(GRID_SELECTOR.attr('data-width'));
+    const height = parseFloat(GRID_SELECTOR.attr('data-height'));
 
     // Align the position to the grid
     let roundedX = Math.round(x);
@@ -166,17 +191,17 @@ function alignGridSelector() {
 function updateGridSelector(width, height, x, y) {
     GRID_SELECTOR.width(width);
     GRID_SELECTOR.height(height);
-    GRID_SELECTOR.css({"left": x, "top": y});
+    GRID_SELECTOR.css({'left': x, 'top': y});
 
     // Update the siblings of the selector
-    GRID_SELECTOR_SIBLINGS.top.css({"top": 0, "right": 0, "left": 0});
+    GRID_SELECTOR_SIBLINGS.top.css({'top': 0, 'right': 0, 'left': 0});
     GRID_SELECTOR_SIBLINGS.top.height(y);
-    GRID_SELECTOR_SIBLINGS.bottom.css({"top": y + height, "right": 0, "bottom": 0, "left": 0});
+    GRID_SELECTOR_SIBLINGS.bottom.css({'top': y + height, 'right': 0, 'bottom': 0, 'left': 0});
 
-    GRID_SELECTOR_SIBLINGS.left.css({"top": y, "left": 0});
+    GRID_SELECTOR_SIBLINGS.left.css({'top': y, 'left': 0});
     GRID_SELECTOR_SIBLINGS.left.width(x);
     GRID_SELECTOR_SIBLINGS.left.height(height);
-    GRID_SELECTOR_SIBLINGS.right.css({"top": y, "right": 0, "left": x + width});
+    GRID_SELECTOR_SIBLINGS.right.css({'top': y, 'right': 0, 'left': x + width});
     GRID_SELECTOR_SIBLINGS.right.height(height);
 }
 
