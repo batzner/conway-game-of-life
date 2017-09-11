@@ -21,6 +21,8 @@ let GRID_SELECTOR_SIBLINGS = {
     top: null, right: null, bottom: null, left: null
 };
 let MENU = null;
+let DENSITY_VALUE_DISPLAY = null;
+let DENSITY_SLIDER = null;
 
 // Global variables
 let cellSize = 12;
@@ -39,6 +41,7 @@ $(function () {
     GRID_SELECTOR_SIBLINGS.bottom = $('#grid-selector-bottom');
     GRID_SELECTOR_SIBLINGS.left = $('#grid-selector-left');
     MENU = $('#menu');
+    DENSITY_VALUE_DISPLAY = $('#density-value-display');
 
     // Let the canvas fill the screen
     $('canvas').each(function (_, el) {
@@ -58,9 +61,17 @@ $(function () {
     // Initialize the menu
     MENU.addClass('mdc-simple-menu--open');
 
-    // Initialize the slider before hiding the menu, otherwise the initialization will fail
-    const slider = new MDCSlider(document.querySelector('.mdc-slider'));
-    slider.listen('MDCSlider:input', () => createjs.Ticker.setFPS(slider.value));
+    // Initialize the sliders before hiding the menu, otherwise the initialization will fail
+    const speedSlider = new MDCSlider(document.querySelector('#speed-slider'));
+    speedSlider.listen('MDCSlider:input', () => createjs.Ticker.setFPS(speedSlider.value));
+
+    DENSITY_SLIDER = new MDCSlider(document.querySelector('#density-slider'));
+    DENSITY_SLIDER.step = 1;
+    DENSITY_SLIDER.value = 10;
+    DENSITY_VALUE_DISPLAY.html(DENSITY_SLIDER.value);
+    DENSITY_SLIDER.listen('MDCSlider:input', () =>
+        DENSITY_VALUE_DISPLAY.html(DENSITY_SLIDER.value)
+    );
     MENU.hide();
 
     // Initialize the checkboxes
@@ -78,6 +89,11 @@ $(function () {
         incrementalUpdates = incrementalUpdatesCheckbox.prop('checked');
     });
 
+    $('#create-game-button').click(function() {
+        randomInit();
+        MENU.hide();
+    });
+
     // Hide the menu on outside clicks
     $(document).click(function (event) {
         // Exclude clicks within the menu or on the menu button
@@ -93,7 +109,7 @@ $(function () {
     });
     $('#pause-resume-button').click(togglePauseResume);
     $('#next-step-button').click(function () {
-        if (!createjs.Ticker.paused) togglePauseResume();
+        pause();
         tick();
     });
 
@@ -104,12 +120,20 @@ $(function () {
 
     // Start the game
     randomInit();
-    drawField();
     createjs.Ticker.addEventListener('tick', function (event) {
         if (!event.paused) tick();
     });
-    createjs.Ticker.setFPS(10);
+    createjs.Ticker.setFPS(speedSlider.value);
+    resume();
 });
+
+function pause() {
+    if (!createjs.Ticker.paused) togglePauseResume();
+}
+
+function resume() {
+    if (createjs.Ticker.paused) togglePauseResume();
+}
 
 function togglePauseResume() {
     let button = $('#pause-resume-button');
@@ -229,12 +253,23 @@ function updateGridSelector(width, height, x, y) {
 
 function tick() {
     // Update the field and draw it
+    let updates = [];
     let newField = [];
+
     for (let row = 0; row < getNumRows(); row++) {
         let newRow = [];
         for (let column = 0; column < getNumColumns(); column++) {
             const neighborsCount = getNeighborsCount(row, column);
             const willBeAlive = neighborsCount == 3 || neighborsCount == 2 && field[row][column];
+
+            // Set an update if necessary
+            if (willBeAlive != field[row][column]) {
+                updates.push({
+                    row: row,
+                    column: column,
+                    alive: willBeAlive
+                });
+            }
             newRow.push(willBeAlive);
 
             // Incremental cell updates that can be used by the following cells
@@ -243,7 +278,7 @@ function tick() {
         newField.push(newRow)
     }
     field = newField;
-    drawField();
+    drawFieldUpdates(updates);
 }
 
 function getNeighborsCount(cellRow, cellColumn) {
@@ -282,6 +317,13 @@ function drawField() {
     STAGE.update();
 }
 
+function drawFieldUpdates(updates) {
+    for (let update of updates) {
+        shapes[update.row][update.column].visible = update.alive;
+    }
+    STAGE.update();
+}
+
 function getField(numRows, numColumns) {
     let field = [];
     for (let row = 0; row < numRows; row++) {
@@ -314,9 +356,12 @@ function getShapes(stage, rows, columns) {
 }
 
 function randomInit() {
+    pause();
+    const density = DENSITY_SLIDER ? DENSITY_SLIDER.value / 100 : 0.1;
     for (let row = 0; row < getNumRows(); row++) {
         for (let column = 0; column < getNumColumns(); column++) {
-            field[row][column] = Math.random() < 0.1;
+            field[row][column] = Math.random() <= density;
         }
     }
+    drawField();
 }

@@ -6,6 +6,7 @@
 
     <link rel="stylesheet" href="node_modules/material-components-web/dist/material-components-web.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-beta/css/bootstrap.min.css">
 
     <link rel="stylesheet" type="text/css" href="css/main.css">
@@ -24,11 +25,11 @@
 <div id="controls">
     <div id="menu" class="mdc-simple-menu">
         <ul class="mdc-list">
-            <li class="mdc-list-item no-focus">
+            <li class="mdc-list-item">
                 <div>
-                    <span>Speed</span>
-                    <div class="mdc-slider" tabindex="0" role="slider"
-                         aria-valuemin="1" aria-valuemax="10" aria-valuenow="5"
+                    Speed
+                    <div id="speed-slider" class="mdc-slider" tabindex="0" role="slider"
+                         aria-valuemin="1" aria-valuemax="20" aria-valuenow="5"
                          aria-label="Select Speed">
                         <div class="mdc-slider__track-container">
                             <div class="mdc-slider__track"></div>
@@ -43,7 +44,7 @@
                 </div>
             </li>
             <li class="mdc-list-divider" role="separator"></li>
-            <li class="mdc-list-item no-focus">
+            <li class="mdc-list-item">
                 <div class="mdc-form-field">
                     <div class="mdc-checkbox">
                         <input type="checkbox"
@@ -65,7 +66,7 @@
                 </div>
             </li>
             <li class="mdc-list-divider" role="separator"></li>
-            <li class="mdc-list-item no-focus">
+            <li class="mdc-list-item">
                 <div class="mdc-form-field">
                     <div class="mdc-checkbox">
                         <input type="checkbox"
@@ -88,7 +89,27 @@
             </li>
             <li class="mdc-list-divider" role="separator"></li>
             <li class="mdc-list-item">
-                Another Menu Item
+                <div>
+                    <h4 class="mdc-typography--subheading1">New Game</h4>
+                    Population Density: <span id="density-value-display">10</span> %
+                    <div id="density-slider" class="mdc-slider" tabindex="0" role="slider"
+                         aria-valuemin="0" aria-valuemax="100" aria-valuenow="20"
+                         aria-label="Select Density">
+                        <div class="mdc-slider__track-container">
+                            <div class="mdc-slider__track"></div>
+                        </div>
+                        <div class="mdc-slider__thumb-container">
+                            <svg class="mdc-slider__thumb" width="21" height="21">
+                                <circle cx="10.5" cy="10.5" r="7.875"></circle>
+                            </svg>
+                            <div class="mdc-slider__focus-ring"></div>
+                        </div>
+                    </div>
+
+                    <button id="create-game-button" class="mdc-button mdc-button--raised mdc-button--accent">
+                        Create Game
+                    </button>
+                </div>
             </li>
         </ul>
     </div>
