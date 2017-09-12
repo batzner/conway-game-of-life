@@ -2,16 +2,23 @@
  * Created by Kilian on 06.09.17.
  */
 
+// TODO: Info / Explanation, Zoom, Insert Patterns, Choose Map
+
 // Imports
 const {MDCSlider} = mdc.slider;
 
 // Util functions
 Number.prototype.mod = function (n) {
-    return ((this % n) + n) % n;
+    let result = ((this % n) + n) % n;
+    if (result < 0) {
+        console.log(this, n, result);
+    }
+    return result;
 };
 
 // Constants
-const CELL_COLOR = '#3F51B5';//  '#FF4081';
+const CELL_COLOR = '#3F51B5';
+const GRID_MARGIN = 10;
 
 // Semi-constant variables
 let STAGE = null;
@@ -43,20 +50,19 @@ $(function () {
     MENU = $('#menu');
     DENSITY_VALUE_DISPLAY = $('#density-value-display');
 
-    // Let the canvas fill the screen
+    // Let the canvas fill the game area
     $('canvas').each(function (_, el) {
         const canvas = el.getContext('2d').canvas;
-        canvas.width = $(window).width();
-        canvas.height = $(window).height();
+        canvas.width = GRID.width();
+        canvas.height = GRID.height();
     });
 
-    // Calculate the number of cell that fit on the screen
-    let numColumns = Math.floor(GRID.width() / cellSize);
-    let numRows = Math.floor(GRID.height() / cellSize);
+    // Initialize the grid
+    const styleVal = cellSize * 10 + 'px ' + cellSize * 10 + 'px';
+    GRID.css('background-size', styleVal);
 
-    // Initialize the game objects
-    field = getField(numRows, numColumns);
-    shapes = getShapes(STAGE, numRows, numColumns);
+    // Calculate the number of cell that fit on the screen
+    initGridSelector();
 
     // Initialize the menu
     MENU.addClass('mdc-simple-menu--open');
@@ -67,7 +73,7 @@ $(function () {
 
     DENSITY_SLIDER = new MDCSlider(document.querySelector('#density-slider'));
     DENSITY_SLIDER.step = 1;
-    DENSITY_SLIDER.value = 10;
+    DENSITY_SLIDER.value = 50;
     DENSITY_VALUE_DISPLAY.html(DENSITY_SLIDER.value);
     DENSITY_SLIDER.listen('MDCSlider:input', () =>
         DENSITY_VALUE_DISPLAY.html(DENSITY_SLIDER.value)
@@ -89,7 +95,7 @@ $(function () {
         incrementalUpdates = incrementalUpdatesCheckbox.prop('checked');
     });
 
-    $('#create-game-button').click(function() {
+    $('#create-game-button').click(function () {
         randomInit();
         MENU.hide();
     });
@@ -112,11 +118,6 @@ $(function () {
         pause();
         tick();
     });
-
-    // Initialize the grid
-    const styleVal = cellSize * 10 + 'px ' + cellSize * 10 + 'px';
-    GRID.css('background-size', styleVal);
-    initGridSelector();
 
     // Start the game
     randomInit();
@@ -142,99 +143,120 @@ function togglePauseResume() {
     button.find('.material-icons').first().html(icon);
 }
 
-function getNumRows() {
-    return field.length;
+function getGSRows() {
+    return parseFloat(GRID_SELECTOR.attr('data-rows'));
 }
 
-function getNumColumns() {
-    return field[0] ? field[0].length : undefined;
+function getGSColumns() {
+    return parseFloat(GRID_SELECTOR.attr('data-columns'));
 }
 
 function initGridSelector() {
-    GRID_SELECTOR.attr('data-x', 0);
-    GRID_SELECTOR.attr('data-y', 0);
-    GRID_SELECTOR.attr('data-width', getNumColumns());
-    GRID_SELECTOR.attr('data-height', getNumRows());
-
-    alignGridSelector();
+    alignGridSelector(Infinity, Infinity);
 
     // Taken from http://interactjs.io/
     interact('#grid-selector')
-        .draggable({
-            onmove: function (event) {
-                // Get the current (not rounded) position
-                let x = parseFloat(GRID_SELECTOR.attr('data-x'));
-                let y = parseFloat(GRID_SELECTOR.attr('data-y'));
-
-                // Change the desired (not rounded) position
-                x += event.dx / cellSize;
-                y += event.dy / cellSize;
-
-                // Store the desired position in the data-x/data-y attributes and align the grid
-                GRID_SELECTOR.attr('data-x', x);
-                GRID_SELECTOR.attr('data-y', y);
-                alignGridSelector();
-            }
-        })
         .resizable({
             edges: {left: false, right: true, bottom: true, top: false}
         })
         .on('resizemove', function (event) {
-            // If the rect exceeds the visible grid, increase the visible grid
-            if (event.rect.right >= GRID.width() || event.rect.bottom >= GRID.height()) {
+            // If the rect exceeds the visible grid in the bottom right, increase the visible grid
+            if (event.rect.right >= GRID.width() - GRID_MARGIN &&
+                event.rect.bottom >= GRID.height() - GRID_MARGIN) {
                 increaseGrid();
             }
             // Get the current (not rounded) position
-            let x = parseFloat(GRID_SELECTOR.attr('data-x'));
-            let y = parseFloat(GRID_SELECTOR.attr('data-y'));
+            let x = Math.round(GRID_SELECTOR.position().left / cellSize);
+            let y = Math.round(GRID_SELECTOR.position().top / cellSize);
 
             // Change the desired (not rounded) position
             let width = (event.rect.right / cellSize) - x;
             let height = (event.rect.bottom / cellSize) - y;
 
-            // Store the desired position in the data-x/data-y attributes and align the grid
-            GRID_SELECTOR.attr('data-width', width);
-            GRID_SELECTOR.attr('data-height', height);
-            alignGridSelector();
+            // Store the desired size in the data attributes and align the grid
+            alignGridSelector(width, height);
+        })
+        .on('resizeend', function () {
+            // Check, if the grid can be enlarged
+            fitGrid();
         });
 }
 
 function increaseGrid() {
     // Change the grid
-    cellSize = Math.max(cellSize - 0.5, 4);
+    let newCellSize = Math.max(cellSize * 0.9, 4);
+
+    // Check if there is nothing to do
+    if (cellSize == newCellSize) return;
+    updateCellSize(newCellSize);
+    updateField();
+}
+
+function updateCellSize(newCellSize) {
+    // Round to 0 decimal places for the px value in CSS. The cell size needs to rounded accordingly
+    // Otherwise the grid pattern background won't align with the canvas and grid selector
+    cellSize = Math.round(newCellSize * 10) / 10;
+
+    // Update the grid
     const styleVal = cellSize * 10 + 'px ' + cellSize * 10 + 'px';
     GRID.css('background-size', styleVal);
 }
 
-function alignGridSelector() {
-    // Get the desired position
-    const x = parseFloat(GRID_SELECTOR.attr('data-x'));
-    const y = parseFloat(GRID_SELECTOR.attr('data-y'));
-    const width = parseFloat(GRID_SELECTOR.attr('data-width'));
-    const height = parseFloat(GRID_SELECTOR.attr('data-height'));
+function fitGrid() {
+    // Make the grid fill at least one dimension
+    const maxColumns = getMaxGridColumns();
+    const maxRows = getMaxGridRows();
 
-    // Align the position to the grid
-    let roundedX = Math.round(x);
-    let roundedY = Math.round(y);
-    let roundedWidth = Math.round(width);
-    let roundedHeight = Math.round(height);
+    let columns = getGSColumns();
+    let rows = getGSRows();
+
+    let widthRatio = maxColumns / columns;
+    let heightRatio = maxRows / rows;
+
+    // Fit the dimension that will hit the limit first
+    let newCellSize = cellSize * Math.min(widthRatio, heightRatio);
+    updateCellSize(newCellSize);
+    alignGridSelector(columns, rows);
+    updateField();
+}
+
+function getMaxGridColumns() {
+    return Math.floor(GRID.width() / cellSize) - 2 * getMarginCells();
+}
+
+function getMaxGridRows() {
+    return Math.floor(GRID.height() / cellSize) - 2 * getMarginCells();
+}
+
+function alignGridSelector(desiredColumns, desiredRows) {
+    // Default is to keep the same number of columns and rows
+    if (typeof desiredColumns == 'undefined') desiredColumns = getGSColumns();
+    if (typeof desiredRows == 'undefined') desiredRows = getGSRows();
 
     // Stay within the grid
-    let rightLimit = Math.floor(GRID.width() / cellSize);
-    let bottomLimit = Math.floor(GRID.height() / cellSize);
+    desiredColumns = Math.max(desiredColumns, 0);
+    desiredRows = Math.max(desiredRows, 0);
+    desiredColumns = Math.min(getMaxGridColumns(), desiredColumns);
+    desiredRows = Math.min(getMaxGridRows(), desiredRows);
 
-    // Lower bounds
-    roundedWidth = Math.max(roundedWidth, 0);
-    roundedHeight = Math.max(roundedHeight, 0);
+    // Align the position to the grid
+    let roundedWidth = Math.round(desiredColumns);
+    let roundedHeight = Math.round(desiredRows);
+    GRID_SELECTOR.attr('data-columns', roundedWidth);
+    GRID_SELECTOR.attr('data-rows', roundedHeight);
+    updateGridSelector(roundedWidth * cellSize, roundedHeight * cellSize);
+}
 
-    // Upper bounds
-    roundedWidth = Math.min(rightLimit - roundedX, roundedWidth);
-    roundedHeight = Math.min(bottomLimit - roundedY, roundedHeight);
-    updateGridSelector(roundedWidth * cellSize, roundedHeight * cellSize, roundedX * cellSize,
-        roundedY * cellSize);
+function getMarginCells() {
+    return Math.ceil(GRID_MARGIN / cellSize);
 }
 
 function updateGridSelector(width, height, x, y) {
+    // If x and y are not specified, set them to the top left
+    let margin = getMarginCells() * cellSize;
+    x = (typeof x != 'undefined') ? x : margin;
+    y = (typeof y != 'undefined') ? y : margin;
+
     GRID_SELECTOR.width(width);
     GRID_SELECTOR.height(height);
     GRID_SELECTOR.css({'left': x, 'top': y});
@@ -256,9 +278,9 @@ function tick() {
     let updates = [];
     let newField = [];
 
-    for (let row = 0; row < getNumRows(); row++) {
+    for (let row = 0; row < field.length; row++) {
         let newRow = [];
-        for (let column = 0; column < getNumColumns(); column++) {
+        for (let column = 0; column < field[row].length; column++) {
             const neighborsCount = getNeighborsCount(row, column);
             const willBeAlive = neighborsCount == 3 || neighborsCount == 2 && field[row][column];
 
@@ -288,13 +310,13 @@ function getNeighborsCount(cellRow, cellColumn) {
     let neighborsCount = 0;
     for (let rowIndex of rowIndices) {
         // Handle out of bounds cases
-        if (!infiniteEdges && (rowIndex < 0 || rowIndex >= getNumRows())) continue;
-        let row = rowIndex.mod(getNumRows());
+        if (!infiniteEdges && (rowIndex < 0 || rowIndex >= field.length)) continue;
+        let row = rowIndex.mod(field.length);
 
         for (let columnIndex of columnIndices) {
             // Handle out of bounds cases
-            if (!infiniteEdges && (columnIndex < 0 || columnIndex >= getNumColumns())) continue;
-            let column = columnIndex.mod(getNumColumns());
+            if (!infiniteEdges && (columnIndex < 0 || columnIndex >= field[row].length)) continue;
+            let column = columnIndex.mod(field[row].length);
 
             // Check the neighbor
             if (field[row][column] == true && !(row == cellRow && column == cellColumn)) {
@@ -324,42 +346,72 @@ function drawFieldUpdates(updates) {
     STAGE.update();
 }
 
-function getField(numRows, numColumns) {
-    let field = [];
-    for (let row = 0; row < numRows; row++) {
-        let entriesRow = [];
-        for (let column = 0; column < numColumns; column++) {
-            entriesRow.push(false);
-        }
-        field.push(entriesRow);
+function updateField() {
+    const numRows = getGSRows();
+    const numColumns = getGSColumns();
+
+    if (field == null) field = [];
+
+    // Crop rows if necessary
+    field = field.slice(0, numRows);
+    // Add rows if necessary
+    if (field.length < numRows) {
+        const newRows = new Array(numRows - field.length).fill([]);
+        Array.prototype.push.apply(field, newRows);
     }
+
+    for (let row = 0; row < field.length; row++) {
+        // Crop columns if necessary
+        field[row] = field[row].slice(0, numColumns);
+        // Add columns if necessary
+        if (field[row].length < numColumns) {
+            const newColumns = new Array(numColumns - field[row].length).fill(false);
+            Array.prototype.push.apply(field[row], newColumns);
+        }
+    }
+
+    // Make sure the shapes always match the field
+    updateShapes();
+    drawField();
+
     return field;
 }
 
-function getShapes(stage, rows, columns) {
-    let shapes = [];
-    for (let row = 0; row < rows; row++) {
+function updateShapes() {
+    const numRows = field.length;
+    const numColumns = field[0].length;
+
+    // Don't set new shapes if the dimensions match the field
+    if (shapes != null && shapes.length == numRows && shapes[0].length == numColumns) return;
+
+    shapes = [];
+    STAGE.removeAllChildren();
+    let margin = getMarginCells() * cellSize;
+    for (let row = 0; row < numRows; row++) {
         let shapesRow = [];
-        for (let column = 0; column < columns; column++) {
+        for (let column = 0; column < numColumns; column++) {
             // Create the shape
             const shape = new createjs.Shape();
             shape.graphics
                 .beginFill(CELL_COLOR)
-                .drawRect(column * cellSize, row * cellSize, cellSize, cellSize);
-            stage.addChild(shape);
+                .drawRect(column * cellSize + margin, row * cellSize + margin, cellSize, cellSize);
+            STAGE.addChild(shape);
 
             shapesRow.push(shape);
         }
         shapes.push(shapesRow);
     }
-    return shapes;
 }
 
 function randomInit() {
     pause();
+
+    // Make sure the field matches the current grid selectors dimensions
+    updateField();
+
     const density = DENSITY_SLIDER ? DENSITY_SLIDER.value / 100 : 0.1;
-    for (let row = 0; row < getNumRows(); row++) {
-        for (let column = 0; column < getNumColumns(); column++) {
+    for (let row = 0; row < getGSRows(); row++) {
+        for (let column = 0; column < getGSColumns(); column++) {
             field[row][column] = Math.random() <= density;
         }
     }
