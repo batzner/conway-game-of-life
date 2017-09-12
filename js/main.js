@@ -2,7 +2,7 @@
  * Created by Kilian on 06.09.17.
  */
 
-// TODO: Info / Explanation, Zoom, Insert Patterns, Choose Map
+// TODO: Info / Explanation, Zoom, Insert Patterns, Choose Map, Window resizing observer
 
 // Imports
 const {MDCSlider} = mdc.slider;
@@ -157,7 +157,12 @@ function initGridSelector() {
     // Taken from http://interactjs.io/
     interact('#grid-selector')
         .resizable({
-            edges: {left: false, right: true, bottom: true, top: false}
+            edges: {
+                left: false,
+                right: '.resize-hook-right',
+                bottom: '.resize-hook-bottom',
+                top: false
+            }
         })
         .on('resizemove', function (event) {
             // If the rect exceeds the visible grid in the bottom right, increase the visible grid
@@ -189,7 +194,9 @@ function increaseGrid() {
     // Check if there is nothing to do
     if (cellSize == newCellSize) return;
     updateCellSize(newCellSize);
-    updateField();
+
+    // TODO: Don't update the field, only the shapes
+    updateShapes();
 }
 
 function updateCellSize(newCellSize) {
@@ -372,14 +379,13 @@ function updateField() {
 
     // Make sure the shapes always match the field
     updateShapes();
-    drawField();
 
     return field;
 }
 
 function updateShapes() {
-    const numRows = field.length;
-    const numColumns = field[0].length;
+    const numRows = getGSRows();
+    const numColumns = getGSColumns();
 
     // Don't set new shapes if the dimensions match the field
     if (shapes != null && shapes.length == numRows && shapes[0].length == numColumns) return;
@@ -395,12 +401,15 @@ function updateShapes() {
             shape.graphics
                 .beginFill(CELL_COLOR)
                 .drawRect(column * cellSize + margin, row * cellSize + margin, cellSize, cellSize);
+            shape.visible = false;
             STAGE.addChild(shape);
 
             shapesRow.push(shape);
         }
         shapes.push(shapesRow);
     }
+
+    drawField();
 }
 
 function randomInit() {

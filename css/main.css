@@ -26,11 +26,12 @@ body {
 
 #grid-selector {
     position: absolute;
+    outline: 1px dashed #000;
 }
 
 .grid-selector-sibling {
     position: absolute;
-    background-color: rgba(255, 0, 0, 0.5);
+    background-color: rgba(255, 255, 255, 0.6);
 }
 
 #canvas {
@@ -89,4 +90,26 @@ body {
 .mdc-form-field label {
     margin-bottom: 0;
     font-size: 1rem;
+}
+
+.resize-button {
+    position: absolute;
+    height: 12px;
+    width: 12px;
+    bottom: calc(50% - 6px);
+    right: calc(50% - 6px);
+    background-color: white;
+    color: black;
+}
+
+.resize-button .material-icons {
+    font-size: 12px;
+}
+
+.resize-hook-right {
+    right: -6px;
+}
+
+.resize-hook-bottom {
+    bottom: -6px;
 }
