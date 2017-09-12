@@ -1,1 +1,7 @@
+.DS_Store
 .idea/
+node_modules/*
+!node_modules/material-components-web
+!node_modules/@material
+!node_modules/focus-trap
+!node_modules/tabbable
