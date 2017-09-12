@@ -2,9 +2,6 @@
  * Created by Kilian on 06.09.17.
  */
 
-// TODO: Info / Explanation, Zoom, Insert Patterns, Choose Map, Window resizing observer,
-    // Click on pixel, Minimum limit for grid selector size, Refactoring, Rotate pattern
-
 // Imports
 const {MDCSlider} = mdc.slider;
 
@@ -32,7 +29,7 @@ const PATTERNS = {
         [-2, -6], [-2, -5], [3, -7], [4, -6], [4, -5], [1, -4], [-1, -3], [0, -2], [1, -2],
         [2, -2], [1, -1], [3, -3], [-2, 2], [-1, 2], [0, 2], [-2, 3], [-1, 3], [0, 3], [-3, 4],
         [1, 4], [-4, 6], [-3, 6], [1, 6], [2, 6], [-2, 16], [-1, 16], [-2, 17], [-1, 17]],
-    'Big Exploder': [[-2, -3], [-2, -2], [-2, -1], [-2, 1], [-2, 2], [-2, 3], [-1, -3], [-1, 3], [0, -3], [0, 3], [1, -2], [1, 2], [2, -1], [2, 0], [2, 1]]
+    'Big Exploder': [[-1, -1], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 1], [2, 0]]
 };
 
 // Semi-constant variables
@@ -169,6 +166,10 @@ $(function () {
 });
 
 function insertPatternMode(pattern) {
+    // Cancel a possibly active preview mode
+    GRID_SELECTOR.off('mousemove');
+    GRID_SELECTOR.off('mousedown');
+
     // Show the pattern where the mouse is
     GRID_SELECTOR.mousemove(function (event) {
         let [centerColumn, centerRow] = getMouseCellCoords(event);
