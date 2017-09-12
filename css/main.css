@@ -118,6 +118,10 @@ body {
     bottom: -6px;
 }
 
+.mdc-typography--subheading1 {
+    font-weight: 500;
+}
+
 #insert-pattern-menu {
     /* Manually set the anchor to the bottom right. Setting bottom: 0 does not suffice */
     bottom: 0;

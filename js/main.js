@@ -22,8 +22,13 @@ const CELL_COLOR = '#3F51B5';
 const PATTERN_PREVIEW_COLOR = '#5fb4b5';
 const GRID_MARGIN = 10;
 const PATTERNS = {
-    'Glider': [[-1,0], [0, 1], [1, -1], [1, 0], [1, 1]],
-    'Glider2': [[-1,0], [0, 1], [1, -1], [1, 0], [1, 1]],
+    'Glider': [[-1, 0], [0, 1], [1, -1], [1, 0], [1, 1]],
+    'Exploder': [[-2, -2], [-2, 0], [-2, 2], [-1, -2], [-1, 2], [0, -2], [0, 2], [1, -2], [1, 2],
+        [2, -2], [2, 0], [2, 2]],
+    'Spaceship': [[-2, -1], [-2, 0], [-2, 1], [-2, 2], [-1, -2], [-1, 2], [0, 2], [1, -2], [1, 1]],
+    '10 Cell Row': [[0, -4], [0, -3], [0, -2], [0, -1], [0, 0], [0, 1], [0, 2], [0, 3], [0, 4],
+        [0, 5]],
+    'Glider Gun': [[0, -18], [0, -17], [1, -18], [1, -17], [0, -8], [1, -8], [2, -8], [-1, -7], [-2, -6], [-2, -5], [3, -7], [4, -6], [4, -5], [1, -4], [-1, -3], [0, -2], [1, -2], [2, -2], [1, -1], [3, -3], [-2, 2], [-1, 2], [0, 2], [-2, 3], [-1, 3], [0, 3], [-3, 4], [1, 4], [-4, 6], [-3, 6], [1, 6], [2, 6], [-2, 16], [-1, 16], [-2, 17], [-1, 17]]
 };
 
 // Semi-constant variables
@@ -189,7 +194,7 @@ function insertPatternMode(pattern) {
     })
 }
 
-function getMouseCellCoords(event){
+function getMouseCellCoords(event) {
     // Get the mouse position relative to the grid
     let gridOffset = GRID_SELECTOR.offset();
     let x = event.pageX - gridOffset.left;
