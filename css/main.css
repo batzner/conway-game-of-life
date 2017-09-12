@@ -8,6 +8,10 @@ body {
     padding: 0;
 }
 
+button:focus {
+    outline: 0;
+}
+
 #game-area {
     position: relative;
     width: 100%;
@@ -48,8 +52,8 @@ body {
     right: 1rem;
 }
 
-#controls button {
-    display:block;
+#controls .mdc-fab {
+    display: block;
     margin: 15px auto 0;
 }
 
@@ -87,8 +91,12 @@ body {
     width: 100%;
 }
 
-.mdc-slider {
+#speed-slider {
     margin: -10px 0;
+}
+
+#density-slider {
+    margin-top: -10px;
 }
 
 .mdc-form-field label {
@@ -126,4 +134,10 @@ body {
     /* Manually set the anchor to the bottom right. Setting bottom: 0 does not suffice */
     bottom: 0;
     top: inherit !important;
+}
+
+#clear-button {
+    color: black;
+    background-color: white;
+    margin-left: 10px;
 }

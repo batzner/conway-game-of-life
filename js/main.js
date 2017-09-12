@@ -108,7 +108,13 @@ $(function () {
     });
 
     $('#create-game-button').click(function () {
-        randomInit();
+        pause();
+        randomInit(DENSITY_SLIDER.value / 100);
+        MENU.hide();
+    });
+
+    $('#clear-button').click(function () {
+        randomInit(0);
         MENU.hide();
     });
 
@@ -151,12 +157,11 @@ $(function () {
     });
 
     // Start the game
-    randomInit();
+    randomInit(DENSITY_SLIDER.value / 100);
     createjs.Ticker.addEventListener('tick', function (event) {
         if (!event.paused) tick();
     });
     createjs.Ticker.setFPS(speedSlider.value);
-    resume();
 });
 
 function insertPatternMode(pattern) {
@@ -523,13 +528,9 @@ function getCellShape(column, row, color) {
     return shape;
 }
 
-function randomInit() {
-    pause();
-
+function randomInit(density) {
     // Make sure the field matches the current grid selectors dimensions
     updateField();
-
-    const density = DENSITY_SLIDER ? DENSITY_SLIDER.value / 100 : 0.1;
     for (let row = 0; row < getGSRows(); row++) {
         for (let column = 0; column < getGSColumns(); column++) {
             field[row][column] = Math.random() <= density;
