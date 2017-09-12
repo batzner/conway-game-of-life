@@ -79,6 +79,10 @@ body {
     padding: 8px 16px;
 }
 
+.mdc-simple-menu > h4 {
+    margin: 8px 8px 0 8px;
+}
+
 .mdc-list-item > div {
     width: 100%;
 }
@@ -112,4 +116,10 @@ body {
 
 .resize-hook-bottom {
     bottom: -6px;
+}
+
+#insert-pattern-menu {
+    /* Manually set the anchor to the bottom right. Setting bottom: 0 does not suffice */
+    bottom: 0;
+    top: inherit !important;
 }

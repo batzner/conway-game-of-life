@@ -2,7 +2,8 @@
  * Created by Kilian on 06.09.17.
  */
 
-// TODO: Info / Explanation, Zoom, Insert Patterns, Choose Map, Window resizing observer
+// TODO: Info / Explanation, Zoom, Insert Patterns, Choose Map, Window resizing observer,
+    // Click on pixel, Minimum limit for grid selector size, Refactoring, Rotate pattern
 
 // Imports
 const {MDCSlider} = mdc.slider;
@@ -18,7 +19,12 @@ Number.prototype.mod = function (n) {
 
 // Constants
 const CELL_COLOR = '#3F51B5';
+const PATTERN_PREVIEW_COLOR = '#5fb4b5';
 const GRID_MARGIN = 10;
+const PATTERNS = {
+    'Glider': [[-1,0], [0, 1], [1, -1], [1, 0], [1, 1]],
+    'Glider2': [[-1,0], [0, 1], [1, -1], [1, 0], [1, 1]],
+};
 
 // Semi-constant variables
 let STAGE = null;
@@ -33,8 +39,9 @@ let DENSITY_SLIDER = null;
 
 // Global variables
 let cellSize = 12;
-let field = null;
-let shapes = null;
+let field = [];
+let shapes = [];
+let patternPreviewShapes = [];
 let infiniteEdges = true;
 let incrementalUpdates = false;
 
@@ -119,6 +126,25 @@ $(function () {
         tick();
     });
 
+    // Initialize the insert-pattern menu
+    let insertPatternList = $('#insert-pattern-menu').find('ul');
+    Object.keys(PATTERNS).forEach(patternName => {
+        const pattern = PATTERNS[patternName];
+        if (!pattern) return;
+
+        const item = $('<li class="mdc-list-item" role="menuitem" tabindex="0"></li>');
+        item.html(patternName);
+        item.click(() => insertPatternMode(pattern));
+        insertPatternList.append(item);
+    });
+    let insertPatternMenu = new mdc.menu.MDCSimpleMenu(
+        document.querySelector('#insert-pattern-menu')
+    );
+    // Add event listener to some button to toggle the menu on and off.
+    $('#insert-pattern-button').click(() => {
+        insertPatternMenu.open = !insertPatternMenu.open;
+    });
+
     // Start the game
     randomInit();
     createjs.Ticker.addEventListener('tick', function (event) {
@@ -127,6 +153,83 @@ $(function () {
     createjs.Ticker.setFPS(speedSlider.value);
     resume();
 });
+
+function insertPatternMode(pattern) {
+    // Show the pattern where the mouse is
+    GRID_SELECTOR.mousemove(function (event) {
+        let [centerColumn, centerRow] = getMouseCellCoords(event);
+        showPatternPreview(pattern, centerColumn, centerRow);
+    });
+
+    GRID_SELECTOR.mousedown(function (event) {
+        // Stop the pattern previews and only insert once
+        GRID_SELECTOR.off('mousemove');
+        GRID_SELECTOR.off('mousedown');
+        hidePatternPreview();
+
+        let [centerColumn, centerRow] = getMouseCellCoords(event);
+
+        // Set the pattern in the field
+        let fieldUpdates = [];
+        for (let cell of pattern) {
+            let row = cell[0] + centerRow;
+            let column = cell[1] + centerColumn;
+
+            if (0 <= row && row < field.length && 0 <= column && column < field[row].length) {
+                field[row][column] = true;
+                fieldUpdates.push({
+                    row: row,
+                    column: column,
+                    alive: true
+                });
+            }
+        }
+
+        drawFieldUpdates(fieldUpdates);
+    })
+}
+
+function getMouseCellCoords(event){
+    // Get the mouse position relative to the grid
+    let gridOffset = GRID_SELECTOR.offset();
+    let x = event.pageX - gridOffset.left;
+    let y = event.pageY - gridOffset.top;
+
+    let column = Math.round(x / cellSize);
+    let row = Math.round(y / cellSize);
+    return [column, row];
+}
+
+function showPatternPreview(pattern, centerColumn, centerRow) {
+    // Only manipulate the shapes, not the field
+
+    // Delete the previous pattern
+    hidePatternPreview();
+
+    let maxRow = shapes.length;
+    let maxColumn = shapes[0].length;
+    for (let cell of pattern) {
+        let row = cell[0] + centerRow;
+        let column = cell[1] + centerColumn;
+
+        // Don't draw outside the game area
+        if (row >= maxRow || row < 0 || column >= maxColumn || column < 0) {
+            continue
+        }
+
+        const shape = getCellShape(column, row, PATTERN_PREVIEW_COLOR);
+        // Add at the front so they can be found easily when hiding the pattern
+        STAGE.addChildAt(shape, 0);
+        patternPreviewShapes.push(shape);
+    }
+    STAGE.update();
+}
+
+function hidePatternPreview() {
+    for (let shape of patternPreviewShapes) {
+        STAGE.removeChild(shape);
+    }
+}
 
 function pause() {
     if (!createjs.Ticker.paused) togglePauseResume();
@@ -195,7 +298,7 @@ function increaseGrid() {
     if (cellSize == newCellSize) return;
     updateCellSize(newCellSize);
 
-    // TODO: Don't update the field, only the shapes
+    // Don't update the field, only the shapes
     updateShapes();
 }
 
@@ -357,8 +460,6 @@ function updateField() {
     const numRows = getGSRows();
     const numColumns = getGSColumns();
 
-    if (field == null) field = [];
-
     // Crop rows if necessary
     field = field.slice(0, numRows);
     // Add rows if necessary
@@ -388,28 +489,33 @@ function updateShapes() {
     const numColumns = getGSColumns();
 
     // Don't set new shapes if the dimensions match the field
-    if (shapes != null && shapes.length == numRows && shapes[0].length == numColumns) return;
+    if (shapes.length == numRows && shapes[0].length == numColumns) return;
 
     shapes = [];
     STAGE.removeAllChildren();
-    let margin = getMarginCells() * cellSize;
     for (let row = 0; row < numRows; row++) {
         let shapesRow = [];
         for (let column = 0; column < numColumns; column++) {
             // Create the shape
-            const shape = new createjs.Shape();
-            shape.graphics
-                .beginFill(CELL_COLOR)
-                .drawRect(column * cellSize + margin, row * cellSize + margin, cellSize, cellSize);
+            const shape = getCellShape(column, row, CELL_COLOR);
             shape.visible = false;
             STAGE.addChild(shape);
-
             shapesRow.push(shape);
         }
         shapes.push(shapesRow);
     }
 
     drawField();
+}
+
+function getCellShape(column, row, color) {
+    let margin = getMarginCells();
+
+    const shape = new createjs.Shape();
+    shape.graphics
+        .beginFill(color)
+        .drawRect((column + margin) * cellSize, (row + margin) * cellSize, cellSize, cellSize);
+    return shape;
 }
 
 function randomInit() {
