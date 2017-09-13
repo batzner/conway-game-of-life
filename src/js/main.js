@@ -2,9 +2,6 @@
  * Created by Kilian on 06.09.17.
  */
 
-// Imports
-const {MDCSlider} = mdc.slider;
-
 // Util functions
 Number.prototype.mod = function (n) {
     return ((this % n) + n) % n;
@@ -158,18 +155,18 @@ $(function () {
 });
 
 function initializeSliders() {
-    let menuWasVisible = MENU.is(":visible") && MENU.hasClass('mdc-simple-menu--open');
-    MENU.addClass('mdc-simple-menu--open');
+    let menuWasVisible = MENU.is(":visible") && MENU.hasClass('no-interaction-menu--open');
+    MENU.addClass('no-interaction-menu--open');
     if (!menuWasVisible) MENU.show();
 
     // Initialize the sliders before hiding the menu, otherwise the initialization will fail
-    SPEED_SLIDER = new MDCSlider(document.querySelector('#speed-slider'));
+    SPEED_SLIDER = new mdc.slider.MDCSlider(document.querySelector('#speed-slider'));
     SPEED_SLIDER.step = 1;
     SPEED_SLIDER.listen('MDCSlider:input', () =>
         createjs.Ticker.setFPS(SPEED_SLIDER.value)
     );
 
-    DENSITY_SLIDER = new MDCSlider(document.querySelector('#density-slider'));
+    DENSITY_SLIDER = new mdc.slider.MDCSlider(document.querySelector('#density-slider'));
     DENSITY_SLIDER.step = 1;
     DENSITY_SLIDER.listen('MDCSlider:input', () =>
         DENSITY_VALUE_DISPLAY.html(DENSITY_SLIDER.value)
