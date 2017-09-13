@@ -7,11 +7,7 @@ const {MDCSlider} = mdc.slider;
 
 // Util functions
 Number.prototype.mod = function (n) {
-    let result = ((this % n) + n) % n;
-    if (result < 0) {
-        console.log(this, n, result);
-    }
-    return result;
+    return ((this % n) + n) % n;
 };
 
 // Constants
@@ -43,6 +39,7 @@ let GRID_SELECTOR_SIBLINGS = {
 let MENU = null;
 let DENSITY_VALUE_DISPLAY = null;
 let DENSITY_SLIDER = null;
+let SPEED_SLIDER = null;
 
 // Global variables
 let cellSize = 12;
@@ -64,40 +61,29 @@ $(function () {
     MENU = $('#menu');
     DENSITY_VALUE_DISPLAY = $('#density-value-display');
 
-
     // Initialize the grid
     fitCanvasToGrid();
     updateCellSize(cellSize);
     initGridSelector();
 
     // Respond to window resizing
-    $(window).resize(function() {
+    $(window).resize(function () {
         clearTimeout(window.resizedFinished);
-        window.resizedFinished = setTimeout(function(){
+        window.resizedFinished = setTimeout(function () {
             // On resize end / pause
             fitCanvasToGrid();
             // TODO: The grid height will suddenly jump down 15px and then directly back up during
             // resizing, which will make the grid selector's height decrease by 15px.
             alignGridSelector();
             updateField();
+
+            // Resizing will mess up the sliders
+            initializeSliders();
         }, 250);
     });
 
     // Initialize the menu
-    MENU.addClass('mdc-simple-menu--open');
-
-    // Initialize the sliders before hiding the menu, otherwise the initialization will fail
-    const speedSlider = new MDCSlider(document.querySelector('#speed-slider'));
-    speedSlider.listen('MDCSlider:input', () => createjs.Ticker.setFPS(speedSlider.value));
-
-    DENSITY_SLIDER = new MDCSlider(document.querySelector('#density-slider'));
-    DENSITY_SLIDER.step = 1;
-    DENSITY_SLIDER.value = 50;
-    DENSITY_VALUE_DISPLAY.html(DENSITY_SLIDER.value);
-    DENSITY_SLIDER.listen('MDCSlider:input', () =>
-        DENSITY_VALUE_DISPLAY.html(DENSITY_SLIDER.value)
-    );
-    MENU.hide();
+    initializeSliders();
 
     // Initialize the checkboxes
     mdc.checkbox.MDCCheckbox.attachTo(document.querySelector('.mdc-checkbox'));
@@ -168,8 +154,31 @@ $(function () {
     createjs.Ticker.addEventListener('tick', function (event) {
         if (!event.paused) tick();
     });
-    createjs.Ticker.setFPS(speedSlider.value);
+    createjs.Ticker.setFPS(SPEED_SLIDER.value);
 });
+
+function initializeSliders() {
+    let menuWasVisible = MENU.is(":visible") && MENU.hasClass('mdc-simple-menu--open');
+    MENU.addClass('mdc-simple-menu--open');
+    if (!menuWasVisible) MENU.show();
+
+    // Initialize the sliders before hiding the menu, otherwise the initialization will fail
+    SPEED_SLIDER = new MDCSlider(document.querySelector('#speed-slider'));
+    SPEED_SLIDER.step = 1;
+    SPEED_SLIDER.listen('MDCSlider:input', () =>
+        createjs.Ticker.setFPS(SPEED_SLIDER.value)
+    );
+
+    DENSITY_SLIDER = new MDCSlider(document.querySelector('#density-slider'));
+    DENSITY_SLIDER.step = 1;
+    DENSITY_SLIDER.listen('MDCSlider:input', () =>
+        DENSITY_VALUE_DISPLAY.html(DENSITY_SLIDER.value)
+    );
+
+    DENSITY_VALUE_DISPLAY.html(DENSITY_SLIDER.value);
+
+    if (!menuWasVisible) MENU.hide();
+}
 
 function fitCanvasToGrid() {
     // Let the canvas fill the game area
@@ -369,24 +378,17 @@ function alignGridSelector(desiredColumns, desiredRows) {
     if (typeof desiredColumns == 'undefined') desiredColumns = getGSColumns();
     if (typeof desiredRows == 'undefined') desiredRows = getGSRows();
 
-    console.log(GRID_SELECTOR.attr('data-rows'));
-    console.log(desiredRows);
-
     // Stay within the grid
     desiredColumns = Math.max(desiredColumns, 0);
     desiredRows = Math.max(desiredRows, 0);
     desiredColumns = Math.min(getMaxGridColumns(), desiredColumns);
     desiredRows = Math.min(getMaxGridRows(), desiredRows);
 
-    console.log(desiredRows, GRID.height());
-
     // Align the position to the grid
     let roundedColumns = Math.round(desiredColumns);
     let roundedRows = Math.round(desiredRows);
     GRID_SELECTOR.attr('data-columns', roundedColumns);
     GRID_SELECTOR.attr('data-rows', roundedRows);
-    console.log(roundedRows);
-    console.log("--");
     updateGridSelector(roundedColumns * cellSize, roundedRows * cellSize);
 }
 
