@@ -304,8 +304,8 @@ function initGridSelector() {
         })
         .on('resizemove', function (event) {
             // If the rect exceeds the visible grid in the bottom right, increase the visible grid
-            if (event.rect.right >= GRID.width() - GRID_MARGIN &&
-                event.rect.bottom >= GRID.height() - GRID_MARGIN) {
+            if (event.rect.right >= GRID.width() - getMarginCells() * cellSize &&
+                event.rect.bottom >= GRID.height() - getMarginCells() * cellSize) {
                 increaseGrid();
             }
             // Get the current (not rounded) position
@@ -349,28 +349,31 @@ function updateCellSize(newCellSize) {
 
 function fitGrid() {
     // Make the grid fill at least one dimension
-    const maxColumns = getMaxGridColumns();
-    const maxRows = getMaxGridRows();
-
     let columns = getGSColumns();
     let rows = getGSRows();
 
-    let widthRatio = maxColumns / columns;
-    let heightRatio = maxRows / rows;
-
-    // Fit the dimension that will hit the limit first
-    let newCellSize = cellSize * Math.min(widthRatio, heightRatio);
+    // Increase the cell size until maxRows <= rows or maxColumns <= columns
+    // We cannot calculate the exact factor for increasing the cell size because a ratio like
+    // cellSize *= maxColumns / columns depends on maxColumns, which in turn depends on the cell
+    // size. Using a ratio like this will result in a 3 row grid when resizing from 50 rows to 5 for
+    // example.
+    let newCellSize = cellSize;
+    while (rows < getMaxGridRows(newCellSize) && columns < getMaxGridColumns(newCellSize)) {
+        newCellSize *= 1.01;
+    }
     updateCellSize(newCellSize);
     alignGridSelector(columns, rows);
     updateField();
 }
 
-function getMaxGridColumns() {
-    return Math.floor(GRID.width() / cellSize) - 2 * getMarginCells();
+function getMaxGridColumns(_cellSize) {
+    _cellSize = (typeof _cellSize != 'undefined') ? _cellSize : cellSize;
+    return Math.floor(GRID.width() / _cellSize) - 2 * getMarginCells(_cellSize);
 }
 
-function getMaxGridRows() {
-    return Math.floor(GRID.height() / cellSize) - 2 * getMarginCells();
+function getMaxGridRows(_cellSize) {
+    _cellSize = (typeof _cellSize != 'undefined') ? _cellSize : cellSize;
+    return Math.floor(GRID.height() / _cellSize) - 2 * getMarginCells(_cellSize);
 }
 
 function alignGridSelector(desiredColumns, desiredRows) {
@@ -379,8 +382,8 @@ function alignGridSelector(desiredColumns, desiredRows) {
     if (typeof desiredRows == 'undefined') desiredRows = getGSRows();
 
     // Stay within the grid
-    desiredColumns = Math.max(desiredColumns, 0);
-    desiredRows = Math.max(desiredRows, 0);
+    desiredColumns = Math.max(desiredColumns, 5);
+    desiredRows = Math.max(desiredRows, 5);
     desiredColumns = Math.min(getMaxGridColumns(), desiredColumns);
     desiredRows = Math.min(getMaxGridRows(), desiredRows);
 
@@ -392,8 +395,9 @@ function alignGridSelector(desiredColumns, desiredRows) {
     updateGridSelector(roundedColumns * cellSize, roundedRows * cellSize);
 }
 
-function getMarginCells() {
-    return Math.ceil(GRID_MARGIN / cellSize);
+function getMarginCells(_cellSize) {
+    _cellSize = (typeof _cellSize != 'undefined') ? _cellSize : cellSize;
+    return Math.ceil(GRID_MARGIN / _cellSize);
 }
 
 function updateGridSelector(width, height, x, y) {
