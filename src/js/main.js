@@ -20,8 +20,7 @@ const PATTERN_PREVIEW_COLOR = '#5fb4b5';
 const GRID_MARGIN = 10;
 const PATTERNS = {
     'Glider': [[-1, 0], [0, 1], [1, -1], [1, 0], [1, 1]],
-    'Exploder': [[-2, -2], [-2, 0], [-2, 2], [-1, -2], [-1, 2], [0, -2], [0, 2], [1, -2], [1, 2],
-        [2, -2], [2, 0], [2, 2]],
+    'Exploder': [[-1, -1], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 1], [2, 0]],
     'Spaceship': [[-2, -1], [-2, 0], [-2, 1], [-2, 2], [-1, -2], [-1, 2], [0, 2], [1, -2], [1, 1]],
     '10 Cell Row': [[0, -4], [0, -3], [0, -2], [0, -1], [0, 0], [0, 1], [0, 2], [0, 3], [0, 4],
         [0, 5]],
@@ -29,7 +28,9 @@ const PATTERNS = {
         [-2, -6], [-2, -5], [3, -7], [4, -6], [4, -5], [1, -4], [-1, -3], [0, -2], [1, -2],
         [2, -2], [1, -1], [3, -3], [-2, 2], [-1, 2], [0, 2], [-2, 3], [-1, 3], [0, 3], [-3, 4],
         [1, 4], [-4, 6], [-3, 6], [1, 6], [2, 6], [-2, 16], [-1, 16], [-2, 17], [-1, 17]],
-    'Big Exploder': [[-1, -1], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 1], [2, 0]]
+    'Train': [[-3, -9], [-3, -8], [-3, -7], [-3, 5], [-3, 6], [-3, 7], [-2, -10], [-2, -7],
+        [-2, 4], [-2, 7], [-1, -7], [-1, -2], [-1, -1], [-1, 0], [-1, 7], [0, -7], [0, -2], [0, 1],
+        [0, 7], [1, -8], [1, -3], [1, 6]]
 };
 
 // Semi-constant variables
@@ -63,19 +64,24 @@ $(function () {
     MENU = $('#menu');
     DENSITY_VALUE_DISPLAY = $('#density-value-display');
 
-    // Let the canvas fill the game area
-    $('canvas').each(function (_, el) {
-        const canvas = el.getContext('2d').canvas;
-        canvas.width = GRID.width();
-        canvas.height = GRID.height();
-    });
 
     // Initialize the grid
-    const styleVal = cellSize * 10 + 'px ' + cellSize * 10 + 'px';
-    GRID.css('background-size', styleVal);
-
-    // Calculate the number of cell that fit on the screen
+    fitCanvasToGrid();
+    updateCellSize(cellSize);
     initGridSelector();
+
+    // Respond to window resizing
+    $(window).resize(function() {
+        clearTimeout(window.resizedFinished);
+        window.resizedFinished = setTimeout(function(){
+            // On resize end / pause
+            fitCanvasToGrid();
+            // TODO: The grid height will suddenly jump down 15px and then directly back up during
+            // resizing, which will make the grid selector's height decrease by 15px.
+            alignGridSelector();
+            updateField();
+        }, 250);
+    });
 
     // Initialize the menu
     MENU.addClass('mdc-simple-menu--open');
@@ -165,6 +171,15 @@ $(function () {
     createjs.Ticker.setFPS(speedSlider.value);
 });
 
+function fitCanvasToGrid() {
+    // Let the canvas fill the game area
+    $('canvas').each(function (_, el) {
+        const canvas = el.getContext('2d').canvas;
+        canvas.width = GRID.width();
+        canvas.height = GRID.height();
+    });
+}
+
 function insertPatternMode(pattern) {
     // Cancel a possibly active preview mode
     GRID_SELECTOR.off('mousemove');
@@ -248,10 +263,6 @@ function hidePatternPreview() {
 
 function pause() {
     if (!createjs.Ticker.paused) togglePauseResume();
-}
-
-function resume() {
-    if (createjs.Ticker.paused) togglePauseResume();
 }
 
 function togglePauseResume() {
@@ -358,18 +369,25 @@ function alignGridSelector(desiredColumns, desiredRows) {
     if (typeof desiredColumns == 'undefined') desiredColumns = getGSColumns();
     if (typeof desiredRows == 'undefined') desiredRows = getGSRows();
 
+    console.log(GRID_SELECTOR.attr('data-rows'));
+    console.log(desiredRows);
+
     // Stay within the grid
     desiredColumns = Math.max(desiredColumns, 0);
     desiredRows = Math.max(desiredRows, 0);
     desiredColumns = Math.min(getMaxGridColumns(), desiredColumns);
     desiredRows = Math.min(getMaxGridRows(), desiredRows);
 
+    console.log(desiredRows, GRID.height());
+
     // Align the position to the grid
-    let roundedWidth = Math.round(desiredColumns);
-    let roundedHeight = Math.round(desiredRows);
-    GRID_SELECTOR.attr('data-columns', roundedWidth);
-    GRID_SELECTOR.attr('data-rows', roundedHeight);
-    updateGridSelector(roundedWidth * cellSize, roundedHeight * cellSize);
+    let roundedColumns = Math.round(desiredColumns);
+    let roundedRows = Math.round(desiredRows);
+    GRID_SELECTOR.attr('data-columns', roundedColumns);
+    GRID_SELECTOR.attr('data-rows', roundedRows);
+    console.log(roundedRows);
+    console.log("--");
+    updateGridSelector(roundedColumns * cellSize, roundedRows * cellSize);
 }
 
 function getMarginCells() {
