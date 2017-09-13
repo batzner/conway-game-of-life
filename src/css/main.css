@@ -48,18 +48,18 @@ button:focus {
 
 #controls {
     position: fixed;
-    bottom: 1rem;
+    top: 1rem;
     right: 1rem;
 }
 
 #controls .mdc-fab {
     display: block;
-    margin: 15px auto 0;
+    margin: 0 auto 15px;
 }
 
 @media (min-width: 1024px) {
     #controls {
-        bottom: 1.5rem;
+        top: 1.5rem;
         right: 1.5rem;
     }
 }
@@ -67,7 +67,7 @@ button:focus {
 #menu {
     position: absolute;
     right: 0;
-    bottom: 0;
+    top: 0;
 }
 
 .no-focus:focus, .no-focus:active {
@@ -128,12 +128,6 @@ button:focus {
 
 .mdc-typography--subheading1 {
     font-weight: 500;
-}
-
-#insert-pattern-menu {
-    /* Manually set the anchor to the bottom right. Setting bottom: 0 does not suffice */
-    bottom: 0;
-    top: inherit !important;
 }
 
 #clear-button {
