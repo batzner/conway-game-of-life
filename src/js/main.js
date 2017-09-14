@@ -103,26 +103,13 @@ $(function () {
     });
 
     // Edit pixels on click on the grid
-    GRID_SELECTOR.click(function (event) {
-        if (!editCellsOnClick || MENU.is(":visible")) return;
-
-        const [column, row] = getMouseCellCoords(event);
-
-        if (row < field.length && column < field[row].length) {
-            field[row][column] = !field[row][column];
-            drawFieldUpdates([{
-                row: row,
-                column: column,
-                alive: field[row][column]
-            }]);
-        }
-    });
+    GRID_SELECTOR.on('click.editCell', editCell);
 
     $("#colorpicker").spectrum({
         color: cellColor,
         showPaletteOnly: true,
         showPalette: true,
-        hideAfterPaletteSelect:true,
+        hideAfterPaletteSelect: true,
         palette: [
             ['#FFEB3B', '#FF9800', '#F44336', '#F50057'],
             ['#2196F3', '#00BCD4', '#009688', '#4CAF50'],
@@ -188,7 +175,7 @@ $(function () {
 
     // Let the user start playing
     let explanation = $('#explanation');
-    explanation.find('button').click(function() {
+    explanation.find('button').click(function () {
         explanation.hide();
     });
 
@@ -232,10 +219,28 @@ function fitCanvasToGrid() {
     });
 }
 
+function editCell(event) {
+    if (!editCellsOnClick || MENU.is(":visible")) return;
+
+    const [column, row] = getMouseCellCoords(event);
+
+    if (row < field.length && column < field[row].length) {
+        field[row][column] = !field[row][column];
+        drawFieldUpdates([{
+            row: row,
+            column: column,
+            alive: field[row][column]
+        }]);
+    }
+}
+
 function startInsertPatternMode(pattern) {
     // Cancel a possibly active preview mode
     stopInsertPatternMode();
-    editCellsOnClick = false;
+
+    // Deactivate the cell editing handler to make sure our on click handler for the grid selector
+    // is the only one.
+    GRID_SELECTOR.off('click.editCell');
 
     // Show the pattern where the mouse is
     GRID_SELECTOR.mousemove(function (event) {
@@ -243,7 +248,7 @@ function startInsertPatternMode(pattern) {
         showPatternPreview(pattern, centerColumn, centerRow);
     });
 
-    GRID_SELECTOR.click(function (event) {
+    GRID_SELECTOR.on('click.insertPattern', function (event) {
         let [centerColumn, centerRow] = getMouseCellCoords(event);
 
         // Set the pattern in the field
@@ -265,15 +270,15 @@ function startInsertPatternMode(pattern) {
         // Stop the pattern previews
         stopInsertPatternMode();
         drawFieldUpdates(fieldUpdates);
-    })
+    });
 }
 
 function stopInsertPatternMode() {
+    hidePatternPreview();
     // Cancel a possibly active preview mode
     GRID_SELECTOR.off('mousemove');
-    GRID_SELECTOR.off('click');
-    hidePatternPreview();
-    editCellsOnClick = $('#edit-cells-checkbox').prop('checked');
+    GRID_SELECTOR.off('click.insertPattern');
+    GRID_SELECTOR.on('click.editCell', editCell);
 }
 
 function getMouseCellCoords(event) {
