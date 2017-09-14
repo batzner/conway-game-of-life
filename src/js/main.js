@@ -66,12 +66,10 @@ $(function () {
 
     // Respond to window resizing
     $(window).resize(function () {
-        clearTimeout(window.resizedFinished);
-        window.resizedFinished = setTimeout(function () {
+        clearTimeout(window.resizePaused);
+        window.resizePaused = setTimeout(function () {
             // On resize end / pause
             fitCanvasToGrid();
-            // TODO: The grid height will suddenly jump down 15px and then directly back up during
-            // resizing, which will make the grid selector's height decrease by 15px.
             alignGridSelector();
             updateField();
 
@@ -177,7 +175,7 @@ $(function () {
 
         const item = $('<li class="mdc-list-item" role="menuitem" tabindex="0"></li>');
         item.html(patternName);
-        item.click(() => insertPatternMode(pattern));
+        item.click(() => startInsertPatternMode(pattern));
         insertPatternList.append(item);
     });
     let insertPatternMenu = new mdc.menu.MDCSimpleMenu(
@@ -234,10 +232,10 @@ function fitCanvasToGrid() {
     });
 }
 
-function insertPatternMode(pattern) {
+function startInsertPatternMode(pattern) {
     // Cancel a possibly active preview mode
-    GRID_SELECTOR.off('mousemove');
-    GRID_SELECTOR.off('mousedown');
+    stopInsertPatternMode();
+    editCellsOnClick = false;
 
     // Show the pattern where the mouse is
     GRID_SELECTOR.mousemove(function (event) {
@@ -245,12 +243,7 @@ function insertPatternMode(pattern) {
         showPatternPreview(pattern, centerColumn, centerRow);
     });
 
-    GRID_SELECTOR.mousedown(function (event) {
-        // Stop the pattern previews and only insert once
-        GRID_SELECTOR.off('mousemove');
-        GRID_SELECTOR.off('mousedown');
-        hidePatternPreview();
-
+    GRID_SELECTOR.click(function (event) {
         let [centerColumn, centerRow] = getMouseCellCoords(event);
 
         // Set the pattern in the field
@@ -269,8 +262,18 @@ function insertPatternMode(pattern) {
             }
         }
 
+        // Stop the pattern previews
+        stopInsertPatternMode();
         drawFieldUpdates(fieldUpdates);
     })
+}
+
+function stopInsertPatternMode() {
+    // Cancel a possibly active preview mode
+    GRID_SELECTOR.off('mousemove');
+    GRID_SELECTOR.off('click');
+    hidePatternPreview();
+    editCellsOnClick = $('#edit-cells-checkbox').prop('checked');
 }
 
 function getMouseCellCoords(event) {
