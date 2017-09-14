@@ -6,30 +6,21 @@ var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = [
  * Created by Kilian on 06.09.17.
  */
 
-// Imports
-var MDCSlider = mdc.slider.MDCSlider;
-
 // Util functions
-
 Number.prototype.mod = function (n) {
-    var result = (this % n + n) % n;
-    if (result < 0) {
-        console.log(this, n, result);
-    }
-    return result;
+    return (this % n + n) % n;
 };
 
 // Constants
-var CELL_COLOR = '#3F51B5';
 var PATTERN_PREVIEW_COLOR = '#5fb4b5';
 var GRID_MARGIN = 10;
 var PATTERNS = {
     'Glider': [[-1, 0], [0, 1], [1, -1], [1, 0], [1, 1]],
-    'Exploder': [[-2, -2], [-2, 0], [-2, 2], [-1, -2], [-1, 2], [0, -2], [0, 2], [1, -2], [1, 2], [2, -2], [2, 0], [2, 2]],
+    'Exploder': [[-1, -1], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 1], [2, 0]],
     'Spaceship': [[-2, -1], [-2, 0], [-2, 1], [-2, 2], [-1, -2], [-1, 2], [0, 2], [1, -2], [1, 1]],
     '10 Cell Row': [[0, -4], [0, -3], [0, -2], [0, -1], [0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [0, 5]],
     'Glider Gun': [[0, -18], [0, -17], [1, -18], [1, -17], [0, -8], [1, -8], [2, -8], [-1, -7], [-2, -6], [-2, -5], [3, -7], [4, -6], [4, -5], [1, -4], [-1, -3], [0, -2], [1, -2], [2, -2], [1, -1], [3, -3], [-2, 2], [-1, 2], [0, 2], [-2, 3], [-1, 3], [0, 3], [-3, 4], [1, 4], [-4, 6], [-3, 6], [1, 6], [2, 6], [-2, 16], [-1, 16], [-2, 17], [-1, 17]],
-    'Big Exploder': [[-1, -1], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 1], [2, 0]]
+    'Train': [[-3, -9], [-3, -8], [-3, -7], [-3, 5], [-3, 6], [-3, 7], [-2, -10], [-2, -7], [-2, 4], [-2, 7], [-1, -7], [-1, -2], [-1, -1], [-1, 0], [-1, 7], [0, -7], [0, -2], [0, 1], [0, 7], [1, -8], [1, -3], [1, 6]]
 };
 
 // Semi-constant variables
@@ -42,14 +33,17 @@ var GRID_SELECTOR_SIBLINGS = {
 var MENU = null;
 var DENSITY_VALUE_DISPLAY = null;
 var DENSITY_SLIDER = null;
+var SPEED_SLIDER = null;
 
 // Global variables
-var cellSize = 12;
+var cellSize = 24;
 var field = [];
 var shapes = [];
 var patternPreviewShapes = [];
 var infiniteEdges = true;
 var incrementalUpdates = false;
+var editCellsOnClick = true;
+var cellColor = '#3F51B5';
 
 $(function () {
     // Initialize the semi-constants
@@ -63,37 +57,29 @@ $(function () {
     MENU = $('#menu');
     DENSITY_VALUE_DISPLAY = $('#density-value-display');
 
-    // Let the canvas fill the game area
-    $('canvas').each(function (_, el) {
-        var canvas = el.getContext('2d').canvas;
-        canvas.width = GRID.width();
-        canvas.height = GRID.height();
-    });
-
     // Initialize the grid
-    var styleVal = cellSize * 10 + 'px ' + cellSize * 10 + 'px';
-    GRID.css('background-size', styleVal);
-
-    // Calculate the number of cell that fit on the screen
+    fitCanvasToGrid();
+    updateCellSize(cellSize);
     initGridSelector();
 
+    // Respond to window resizing
+    $(window).resize(function () {
+        clearTimeout(window.resizedFinished);
+        window.resizedFinished = setTimeout(function () {
+            // On resize end / pause
+            fitCanvasToGrid();
+            // TODO: The grid height will suddenly jump down 15px and then directly back up during
+            // resizing, which will make the grid selector's height decrease by 15px.
+            alignGridSelector();
+            updateField();
+
+            // Resizing will mess up the sliders
+            initializeSliders();
+        }, 250);
+    });
+
     // Initialize the menu
-    MENU.addClass('mdc-simple-menu--open');
-
-    // Initialize the sliders before hiding the menu, otherwise the initialization will fail
-    var speedSlider = new MDCSlider(document.querySelector('#speed-slider'));
-    speedSlider.listen('MDCSlider:input', function () {
-        return createjs.Ticker.setFPS(speedSlider.value);
-    });
-
-    DENSITY_SLIDER = new MDCSlider(document.querySelector('#density-slider'));
-    DENSITY_SLIDER.step = 1;
-    DENSITY_SLIDER.value = 50;
-    DENSITY_VALUE_DISPLAY.html(DENSITY_SLIDER.value);
-    DENSITY_SLIDER.listen('MDCSlider:input', function () {
-        return DENSITY_VALUE_DISPLAY.html(DENSITY_SLIDER.value);
-    });
-    MENU.hide();
+    initializeSliders();
 
     // Initialize the checkboxes
     mdc.checkbox.MDCCheckbox.attachTo(document.querySelector('.mdc-checkbox'));
@@ -109,6 +95,46 @@ $(function () {
     incrementalUpdatesCheckbox.click(function () {
         incrementalUpdates = incrementalUpdatesCheckbox.prop('checked');
     });
+
+    var editCellCheckbox = $('#edit-cells-checkbox');
+    editCellCheckbox.prop('checked', editCellsOnClick);
+    editCellCheckbox.click(function () {
+        editCellsOnClick = editCellCheckbox.prop('checked');
+    });
+
+    // Edit pixels on click on the grid
+    GRID_SELECTOR.click(function (event) {
+        if (!editCellsOnClick || MENU.is(":visible")) return;
+
+        var _getMouseCellCoords = getMouseCellCoords(event),
+            _getMouseCellCoords2 = _slicedToArray(_getMouseCellCoords, 2),
+            column = _getMouseCellCoords2[0],
+            row = _getMouseCellCoords2[1];
+
+        if (row < field.length && column < field[row].length) {
+            field[row][column] = !field[row][column];
+            drawFieldUpdates([{
+                row: row,
+                column: column,
+                alive: field[row][column]
+            }]);
+        }
+    });
+
+    $("#colorpicker").spectrum({
+        color: cellColor,
+        showPaletteOnly: true,
+        showPalette: true,
+        hideAfterPaletteSelect: true,
+        palette: [['#FFEB3B', '#FF9800', '#F44336', '#F50057'], ['#2196F3', '#00BCD4', '#009688', '#4CAF50'], ['#3F51B5', '#9C27B0', '#673AB7', '#000000']],
+        change: function change(color) {
+            // Change the cell color
+            cellColor = color.toHexString();
+            updateShapes(true);
+        }
+    });
+    $('.sp-replacer').addClass('mdc-elevation--z3');
+    $('.sp-container').addClass('mdc-elevation--z3');
 
     $('#create-game-button').click(function () {
         pause();
@@ -159,13 +185,51 @@ $(function () {
         insertPatternMenu.open = !insertPatternMenu.open;
     });
 
+    // Let the user start playing
+    var explanation = $('#explanation');
+    explanation.find('button').click(function () {
+        explanation.hide();
+    });
+
     // Start the game
     randomInit(DENSITY_SLIDER.value / 100);
     createjs.Ticker.addEventListener('tick', function (event) {
         if (!event.paused) tick();
     });
-    createjs.Ticker.setFPS(speedSlider.value);
+    createjs.Ticker.setFPS(SPEED_SLIDER.value);
 });
+
+function initializeSliders() {
+    var menuWasVisible = MENU.is(":visible") && MENU.hasClass('no-interaction-menu--open');
+    MENU.addClass('no-interaction-menu--open');
+    if (!menuWasVisible) MENU.show();
+
+    // Initialize the sliders before hiding the menu, otherwise the initialization will fail
+    SPEED_SLIDER = new mdc.slider.MDCSlider(document.querySelector('#speed-slider'));
+    SPEED_SLIDER.step = 1;
+    SPEED_SLIDER.listen('MDCSlider:input', function () {
+        return createjs.Ticker.setFPS(SPEED_SLIDER.value);
+    });
+
+    DENSITY_SLIDER = new mdc.slider.MDCSlider(document.querySelector('#density-slider'));
+    DENSITY_SLIDER.step = 1;
+    DENSITY_SLIDER.listen('MDCSlider:input', function () {
+        return DENSITY_VALUE_DISPLAY.html(DENSITY_SLIDER.value);
+    });
+
+    DENSITY_VALUE_DISPLAY.html(DENSITY_SLIDER.value);
+
+    if (!menuWasVisible) MENU.hide();
+}
+
+function fitCanvasToGrid() {
+    // Let the canvas fill the game area
+    $('canvas').each(function (_, el) {
+        var canvas = el.getContext('2d').canvas;
+        canvas.width = GRID.width();
+        canvas.height = GRID.height();
+    });
+}
 
 function insertPatternMode(pattern) {
     // Cancel a possibly active preview mode
@@ -174,10 +238,10 @@ function insertPatternMode(pattern) {
 
     // Show the pattern where the mouse is
     GRID_SELECTOR.mousemove(function (event) {
-        var _getMouseCellCoords = getMouseCellCoords(event),
-            _getMouseCellCoords2 = _slicedToArray(_getMouseCellCoords, 2),
-            centerColumn = _getMouseCellCoords2[0],
-            centerRow = _getMouseCellCoords2[1];
+        var _getMouseCellCoords3 = getMouseCellCoords(event),
+            _getMouseCellCoords4 = _slicedToArray(_getMouseCellCoords3, 2),
+            centerColumn = _getMouseCellCoords4[0],
+            centerRow = _getMouseCellCoords4[1];
 
         showPatternPreview(pattern, centerColumn, centerRow);
     });
@@ -188,10 +252,10 @@ function insertPatternMode(pattern) {
         GRID_SELECTOR.off('mousedown');
         hidePatternPreview();
 
-        var _getMouseCellCoords3 = getMouseCellCoords(event),
-            _getMouseCellCoords4 = _slicedToArray(_getMouseCellCoords3, 2),
-            centerColumn = _getMouseCellCoords4[0],
-            centerRow = _getMouseCellCoords4[1];
+        var _getMouseCellCoords5 = getMouseCellCoords(event),
+            _getMouseCellCoords6 = _slicedToArray(_getMouseCellCoords5, 2),
+            centerColumn = _getMouseCellCoords6[0],
+            centerRow = _getMouseCellCoords6[1];
 
         // Set the pattern in the field
 
@@ -242,8 +306,8 @@ function getMouseCellCoords(event) {
     var x = event.pageX - gridOffset.left;
     var y = event.pageY - gridOffset.top;
 
-    var column = Math.round(x / cellSize);
-    var row = Math.round(y / cellSize);
+    var column = Math.floor(x / cellSize);
+    var row = Math.floor(y / cellSize);
     return [column, row];
 }
 
@@ -325,10 +389,6 @@ function pause() {
     if (!createjs.Ticker.paused) togglePauseResume();
 }
 
-function resume() {
-    if (createjs.Ticker.paused) togglePauseResume();
-}
-
 function togglePauseResume() {
     var button = $('#pause-resume-button');
     createjs.Ticker.paused = !createjs.Ticker.paused;
@@ -357,7 +417,7 @@ function initGridSelector() {
         }
     }).on('resizemove', function (event) {
         // If the rect exceeds the visible grid in the bottom right, increase the visible grid
-        if (event.rect.right >= GRID.width() - GRID_MARGIN && event.rect.bottom >= GRID.height() - GRID_MARGIN) {
+        if (event.rect.right >= GRID.width() - getMarginCells() * cellSize && event.rect.bottom >= GRID.height() - getMarginCells() * cellSize) {
             increaseGrid();
         }
         // Get the current (not rounded) position
@@ -400,28 +460,31 @@ function updateCellSize(newCellSize) {
 
 function fitGrid() {
     // Make the grid fill at least one dimension
-    var maxColumns = getMaxGridColumns();
-    var maxRows = getMaxGridRows();
-
     var columns = getGSColumns();
     var rows = getGSRows();
 
-    var widthRatio = maxColumns / columns;
-    var heightRatio = maxRows / rows;
-
-    // Fit the dimension that will hit the limit first
-    var newCellSize = cellSize * Math.min(widthRatio, heightRatio);
+    // Increase the cell size until maxRows <= rows or maxColumns <= columns
+    // We cannot calculate the exact factor for increasing the cell size because a ratio like
+    // cellSize *= maxColumns / columns depends on maxColumns, which in turn depends on the cell
+    // size. Using a ratio like this will result in a 3 row grid when resizing from 50 rows to 5 for
+    // example.
+    var newCellSize = cellSize;
+    while (rows < getMaxGridRows(newCellSize) && columns < getMaxGridColumns(newCellSize)) {
+        newCellSize *= 1.01;
+    }
     updateCellSize(newCellSize);
     alignGridSelector(columns, rows);
     updateField();
 }
 
-function getMaxGridColumns() {
-    return Math.floor(GRID.width() / cellSize) - 2 * getMarginCells();
+function getMaxGridColumns(_cellSize) {
+    _cellSize = typeof _cellSize != 'undefined' ? _cellSize : cellSize;
+    return Math.floor(GRID.width() / _cellSize) - 2 * getMarginCells(_cellSize);
 }
 
-function getMaxGridRows() {
-    return Math.floor(GRID.height() / cellSize) - 2 * getMarginCells();
+function getMaxGridRows(_cellSize) {
+    _cellSize = typeof _cellSize != 'undefined' ? _cellSize : cellSize;
+    return Math.floor(GRID.height() / _cellSize) - 2 * getMarginCells(_cellSize);
 }
 
 function alignGridSelector(desiredColumns, desiredRows) {
@@ -430,21 +493,22 @@ function alignGridSelector(desiredColumns, desiredRows) {
     if (typeof desiredRows == 'undefined') desiredRows = getGSRows();
 
     // Stay within the grid
-    desiredColumns = Math.max(desiredColumns, 0);
-    desiredRows = Math.max(desiredRows, 0);
+    desiredColumns = Math.max(desiredColumns, 5);
+    desiredRows = Math.max(desiredRows, 5);
     desiredColumns = Math.min(getMaxGridColumns(), desiredColumns);
     desiredRows = Math.min(getMaxGridRows(), desiredRows);
 
     // Align the position to the grid
-    var roundedWidth = Math.round(desiredColumns);
-    var roundedHeight = Math.round(desiredRows);
-    GRID_SELECTOR.attr('data-columns', roundedWidth);
-    GRID_SELECTOR.attr('data-rows', roundedHeight);
-    updateGridSelector(roundedWidth * cellSize, roundedHeight * cellSize);
+    var roundedColumns = Math.round(desiredColumns);
+    var roundedRows = Math.round(desiredRows);
+    GRID_SELECTOR.attr('data-columns', roundedColumns);
+    GRID_SELECTOR.attr('data-rows', roundedRows);
+    updateGridSelector(roundedColumns * cellSize, roundedRows * cellSize);
 }
 
-function getMarginCells() {
-    return Math.ceil(GRID_MARGIN / cellSize);
+function getMarginCells(_cellSize) {
+    _cellSize = typeof _cellSize != 'undefined' ? _cellSize : cellSize;
+    return Math.ceil(GRID_MARGIN / _cellSize);
 }
 
 function updateGridSelector(width, height, x, y) {
@@ -636,11 +700,13 @@ function updateField() {
 }
 
 function updateShapes() {
+    var force = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
+
     var numRows = getGSRows();
     var numColumns = getGSColumns();
 
     // Don't set new shapes if the dimensions match the field
-    if (shapes.length == numRows && shapes[0].length == numColumns) return;
+    if (!force && shapes.length == numRows && shapes[0].length == numColumns) return;
 
     shapes = [];
     STAGE.removeAllChildren();
@@ -648,7 +714,7 @@ function updateShapes() {
         var shapesRow = [];
         for (var column = 0; column < numColumns; column++) {
             // Create the shape
-            var shape = getCellShape(column, row, CELL_COLOR);
+            var shape = getCellShape(column, row, cellColor);
             shape.visible = false;
             STAGE.addChild(shape);
             shapesRow.push(shape);

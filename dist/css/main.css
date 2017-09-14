@@ -12,6 +12,11 @@ button:focus {
     outline: 0;
 }
 
+a {
+    text-decoration: none;
+    color: #3F51B5;
+}
+
 #game-area {
     position: relative;
     width: 100%;
@@ -48,18 +53,18 @@ button:focus {
 
 #controls {
     position: fixed;
-    bottom: 1rem;
+    top: 1rem;
     right: 1rem;
 }
 
 #controls .mdc-fab {
     display: block;
-    margin: 15px auto 0;
+    margin: 0 auto 15px;
 }
 
 @media (min-width: 1024px) {
     #controls {
-        bottom: 1.5rem;
+        top: 1.5rem;
         right: 1.5rem;
     }
 }
@@ -67,7 +72,81 @@ button:focus {
 #menu {
     position: absolute;
     right: 0;
-    bottom: 0;
+    top: 0;
+    padding-bottom: 10px;
+}
+
+.no-interaction-menu {
+    /* Copied from .mdc-simple-menu. Copying was needed to prevent the MDC JS from overwriting
+    unwanted behavior. */
+    display: none;
+    width: 300px;
+    min-width: 170px;
+    max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 32px);
+    margin: 0;
+    padding: 0;
+    -webkit-transform: scale(0);
+    transform: scale(0);
+    -webkit-transform-origin: top left;
+    transform-origin: top left;
+    border-radius: 2px;
+    background-color: white;
+    white-space: nowrap;
+    opacity: 0;
+    overflow: hidden;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+    will-change: transform, opacity;
+    z-index: 4;
+    -webkit-box-shadow: 0px 3px 1px -2px rgba(0, 0, 0, 0.2), 0px 2px 2px 0px rgba(0, 0, 0, 0.14), 0px 1px 5px 0px rgba(0, 0, 0, 0.12);
+    box-shadow: 0px 3px 1px -2px rgba(0, 0, 0, 0.2), 0px 2px 2px 0px rgba(0, 0, 0, 0.14), 0px 1px 5px 0px rgba(0, 0, 0, 0.12);
+}
+
+.no-interaction-menu .mdc-list {
+    padding: 8px 0;
+}
+
+.no-interaction-menu .mdc-list-item {
+    position: relative;
+    padding: 8px 16px;
+    outline: none;
+    color: inherit;
+    text-decoration: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    font-family: Roboto, sans-serif;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
+    font-size: 1rem;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    line-height: 1.75rem;
+    text-decoration: inherit;
+    text-transform: inherit;
+}
+
+.mdc-simple-menu > h4 {
+    margin: 8px 8px 0 8px;
+}
+
+.no-interaction-menu h4 {
+    margin: 8px 0;
+}
+
+.no-interaction-menu--open {
+    display: inline-block;
+    -webkit-transform: scale(1);
+    transform: scale(1);
+    opacity: 1;
+}
+
+.mdc-select {
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 10px;
 }
 
 .no-focus:focus, .no-focus:active {
@@ -77,14 +156,6 @@ button:focus {
 .mdc-list-item {
     height: inherit;
     min-height: 48px;
-}
-
-.mdc-simple-menu .mdc-list-item {
-    padding: 8px 16px;
-}
-
-.mdc-simple-menu > h4 {
-    margin: 8px 8px 0 8px;
 }
 
 .mdc-list-item > div {
@@ -130,14 +201,86 @@ button:focus {
     font-weight: 500;
 }
 
-#insert-pattern-menu {
-    /* Manually set the anchor to the bottom right. Setting bottom: 0 does not suffice */
-    bottom: 0;
-    top: inherit !important;
-}
-
 #clear-button {
     color: black;
     background-color: white;
     margin-left: 10px;
+    float: right;
+}
+
+.mdc-list-item .sp-replacer {
+    width: 30px;
+}
+
+#explanation {
+    background: white;
+    position: absolute;
+    top: 50px;
+    width: 800px;
+    left: calc(50% - 400px);
+    z-index: 10;
+    margin-bottom: 50px;
+}
+
+#explanation button {
+    margin: 0 auto 10px;
+    display: block;
+}
+
+@media (max-width: 575px) {
+    #explanation {
+        width: 300px;
+        left: calc(50% - 150px);
+    }
+}
+
+@media (min-width: 576px) and (max-width: 767px) {
+    #explanation {
+        width: 450px;
+        left: calc(50% - 225px);
+    }
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+    #explanation {
+        width: 600px;
+        left: calc(50% - 300px);
+    }
+}
+
+/* Spectrum modification code */
+
+.sp-replacer {
+    width: 30px;
+    height: 30px;
+    float: right;
+    margin-left: 20px;
+    padding: 0;
+    border: none;
+}
+
+.sp-dd {
+    display:none;
+}
+
+.sp-preview {
+    height: 100%;
+    width: 100%;
+    border: none;
+}
+
+.sp-container {
+    border: none;
+    background: white;
+}
+
+.sp-palette .sp-thumb-el:hover, .sp-palette .sp-thumb-el.sp-thumb-active {
+    border: none;
+}
+
+.sp-palette .sp-thumb-el {
+    border: none;
+    margin: 5px;
+    width: 30px;
+    height: 30px;
 }
