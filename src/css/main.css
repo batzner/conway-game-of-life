@@ -123,8 +123,12 @@ button:focus {
     text-transform: inherit;
 }
 
-.no-interaction-menu h4, .mdc-simple-menu h4 {
+.mdc-simple-menu > h4 {
     margin: 8px 8px 0 8px;
+}
+
+.no-interaction-menu h4 {
+    margin: 8px 0;
 }
 
 .no-interaction-menu--open {
@@ -132,6 +136,12 @@ button:focus {
     -webkit-transform: scale(1);
     transform: scale(1);
     opacity: 1;
+}
+
+.mdc-select {
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 10px;
 }
 
 .no-focus:focus, .no-focus:active {

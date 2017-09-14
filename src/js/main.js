@@ -108,7 +108,6 @@ $(function () {
             ['#3F51B5', '#9C27B0', '#673AB7', '#000000']
         ],
         change: function (color) {
-            console.log(color);
             // Change the cell color
             cellColor = color.toHexString();
             updateShapes(true);
