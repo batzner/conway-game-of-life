@@ -2,26 +2,17 @@
  * Created by Kilian on 06.09.17.
  */
 
-// Imports
-const {MDCSlider} = mdc.slider;
-
 // Util functions
 Number.prototype.mod = function (n) {
-    let result = ((this % n) + n) % n;
-    if (result < 0) {
-        console.log(this, n, result);
-    }
-    return result;
+    return ((this % n) + n) % n;
 };
 
 // Constants
-const CELL_COLOR = '#3F51B5';
 const PATTERN_PREVIEW_COLOR = '#5fb4b5';
 const GRID_MARGIN = 10;
 const PATTERNS = {
     'Glider': [[-1, 0], [0, 1], [1, -1], [1, 0], [1, 1]],
-    'Exploder': [[-2, -2], [-2, 0], [-2, 2], [-1, -2], [-1, 2], [0, -2], [0, 2], [1, -2], [1, 2],
-        [2, -2], [2, 0], [2, 2]],
+    'Exploder': [[-1, -1], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 1], [2, 0]],
     'Spaceship': [[-2, -1], [-2, 0], [-2, 1], [-2, 2], [-1, -2], [-1, 2], [0, 2], [1, -2], [1, 1]],
     '10 Cell Row': [[0, -4], [0, -3], [0, -2], [0, -1], [0, 0], [0, 1], [0, 2], [0, 3], [0, 4],
         [0, 5]],
@@ -29,7 +20,9 @@ const PATTERNS = {
         [-2, -6], [-2, -5], [3, -7], [4, -6], [4, -5], [1, -4], [-1, -3], [0, -2], [1, -2],
         [2, -2], [1, -1], [3, -3], [-2, 2], [-1, 2], [0, 2], [-2, 3], [-1, 3], [0, 3], [-3, 4],
         [1, 4], [-4, 6], [-3, 6], [1, 6], [2, 6], [-2, 16], [-1, 16], [-2, 17], [-1, 17]],
-    'Big Exploder': [[-1, -1], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 1], [2, 0]]
+    'Train': [[-3, -9], [-3, -8], [-3, -7], [-3, 5], [-3, 6], [-3, 7], [-2, -10], [-2, -7],
+        [-2, 4], [-2, 7], [-1, -7], [-1, -2], [-1, -1], [-1, 0], [-1, 7], [0, -7], [0, -2], [0, 1],
+        [0, 7], [1, -8], [1, -3], [1, 6]]
 };
 
 // Semi-constant variables
@@ -42,14 +35,17 @@ let GRID_SELECTOR_SIBLINGS = {
 let MENU = null;
 let DENSITY_VALUE_DISPLAY = null;
 let DENSITY_SLIDER = null;
+let SPEED_SLIDER = null;
 
 // Global variables
-let cellSize = 12;
+let cellSize = 24;
 let field = [];
 let shapes = [];
 let patternPreviewShapes = [];
 let infiniteEdges = true;
 let incrementalUpdates = false;
+let editCellsOnClick = true;
+let cellColor = '#3F51B5';
 
 $(function () {
     // Initialize the semi-constants
@@ -63,35 +59,29 @@ $(function () {
     MENU = $('#menu');
     DENSITY_VALUE_DISPLAY = $('#density-value-display');
 
-    // Let the canvas fill the game area
-    $('canvas').each(function (_, el) {
-        const canvas = el.getContext('2d').canvas;
-        canvas.width = GRID.width();
-        canvas.height = GRID.height();
-    });
-
     // Initialize the grid
-    const styleVal = cellSize * 10 + 'px ' + cellSize * 10 + 'px';
-    GRID.css('background-size', styleVal);
-
-    // Calculate the number of cell that fit on the screen
+    fitCanvasToGrid();
+    updateCellSize(cellSize);
     initGridSelector();
 
+    // Respond to window resizing
+    $(window).resize(function () {
+        clearTimeout(window.resizedFinished);
+        window.resizedFinished = setTimeout(function () {
+            // On resize end / pause
+            fitCanvasToGrid();
+            // TODO: The grid height will suddenly jump down 15px and then directly back up during
+            // resizing, which will make the grid selector's height decrease by 15px.
+            alignGridSelector();
+            updateField();
+
+            // Resizing will mess up the sliders
+            initializeSliders();
+        }, 250);
+    });
+
     // Initialize the menu
-    MENU.addClass('mdc-simple-menu--open');
-
-    // Initialize the sliders before hiding the menu, otherwise the initialization will fail
-    const speedSlider = new MDCSlider(document.querySelector('#speed-slider'));
-    speedSlider.listen('MDCSlider:input', () => createjs.Ticker.setFPS(speedSlider.value));
-
-    DENSITY_SLIDER = new MDCSlider(document.querySelector('#density-slider'));
-    DENSITY_SLIDER.step = 1;
-    DENSITY_SLIDER.value = 50;
-    DENSITY_VALUE_DISPLAY.html(DENSITY_SLIDER.value);
-    DENSITY_SLIDER.listen('MDCSlider:input', () =>
-        DENSITY_VALUE_DISPLAY.html(DENSITY_SLIDER.value)
-    );
-    MENU.hide();
+    initializeSliders();
 
     // Initialize the checkboxes
     mdc.checkbox.MDCCheckbox.attachTo(document.querySelector('.mdc-checkbox'));
@@ -107,6 +97,47 @@ $(function () {
     incrementalUpdatesCheckbox.click(function () {
         incrementalUpdates = incrementalUpdatesCheckbox.prop('checked');
     });
+
+    const editCellCheckbox = $('#edit-cells-checkbox');
+    editCellCheckbox.prop('checked', editCellsOnClick);
+    editCellCheckbox.click(function () {
+        editCellsOnClick = editCellCheckbox.prop('checked');
+    });
+
+    // Edit pixels on click on the grid
+    GRID_SELECTOR.click(function (event) {
+        if (!editCellsOnClick || MENU.is(":visible")) return;
+
+        const [column, row] = getMouseCellCoords(event);
+
+        if (row < field.length && column < field[row].length) {
+            field[row][column] = !field[row][column];
+            drawFieldUpdates([{
+                row: row,
+                column: column,
+                alive: field[row][column]
+            }]);
+        }
+    });
+
+    $("#colorpicker").spectrum({
+        color: cellColor,
+        showPaletteOnly: true,
+        showPalette: true,
+        hideAfterPaletteSelect:true,
+        palette: [
+            ['#FFEB3B', '#FF9800', '#F44336', '#F50057'],
+            ['#2196F3', '#00BCD4', '#009688', '#4CAF50'],
+            ['#3F51B5', '#9C27B0', '#673AB7', '#000000']
+        ],
+        change: function (color) {
+            // Change the cell color
+            cellColor = color.toHexString();
+            updateShapes(true);
+        }
+    });
+    $('.sp-replacer').addClass('mdc-elevation--z3');
+    $('.sp-container').addClass('mdc-elevation--z3');
 
     $('#create-game-button').click(function () {
         pause();
@@ -157,13 +188,51 @@ $(function () {
         insertPatternMenu.open = !insertPatternMenu.open;
     });
 
+    // Let the user start playing
+    let explanation = $('#explanation');
+    explanation.find('button').click(function() {
+        explanation.hide();
+    });
+
     // Start the game
     randomInit(DENSITY_SLIDER.value / 100);
     createjs.Ticker.addEventListener('tick', function (event) {
         if (!event.paused) tick();
     });
-    createjs.Ticker.setFPS(speedSlider.value);
+    createjs.Ticker.setFPS(SPEED_SLIDER.value);
 });
+
+function initializeSliders() {
+    let menuWasVisible = MENU.is(":visible") && MENU.hasClass('no-interaction-menu--open');
+    MENU.addClass('no-interaction-menu--open');
+    if (!menuWasVisible) MENU.show();
+
+    // Initialize the sliders before hiding the menu, otherwise the initialization will fail
+    SPEED_SLIDER = new mdc.slider.MDCSlider(document.querySelector('#speed-slider'));
+    SPEED_SLIDER.step = 1;
+    SPEED_SLIDER.listen('MDCSlider:input', () =>
+        createjs.Ticker.setFPS(SPEED_SLIDER.value)
+    );
+
+    DENSITY_SLIDER = new mdc.slider.MDCSlider(document.querySelector('#density-slider'));
+    DENSITY_SLIDER.step = 1;
+    DENSITY_SLIDER.listen('MDCSlider:input', () =>
+        DENSITY_VALUE_DISPLAY.html(DENSITY_SLIDER.value)
+    );
+
+    DENSITY_VALUE_DISPLAY.html(DENSITY_SLIDER.value);
+
+    if (!menuWasVisible) MENU.hide();
+}
+
+function fitCanvasToGrid() {
+    // Let the canvas fill the game area
+    $('canvas').each(function (_, el) {
+        const canvas = el.getContext('2d').canvas;
+        canvas.width = GRID.width();
+        canvas.height = GRID.height();
+    });
+}
 
 function insertPatternMode(pattern) {
     // Cancel a possibly active preview mode
@@ -210,8 +279,8 @@ function getMouseCellCoords(event) {
     let x = event.pageX - gridOffset.left;
     let y = event.pageY - gridOffset.top;
 
-    let column = Math.round(x / cellSize);
-    let row = Math.round(y / cellSize);
+    let column = Math.floor(x / cellSize);
+    let row = Math.floor(y / cellSize);
     return [column, row];
 }
 
@@ -250,10 +319,6 @@ function pause() {
     if (!createjs.Ticker.paused) togglePauseResume();
 }
 
-function resume() {
-    if (createjs.Ticker.paused) togglePauseResume();
-}
-
 function togglePauseResume() {
     let button = $('#pause-resume-button');
     createjs.Ticker.paused = !createjs.Ticker.paused;
@@ -284,8 +349,8 @@ function initGridSelector() {
         })
         .on('resizemove', function (event) {
             // If the rect exceeds the visible grid in the bottom right, increase the visible grid
-            if (event.rect.right >= GRID.width() - GRID_MARGIN &&
-                event.rect.bottom >= GRID.height() - GRID_MARGIN) {
+            if (event.rect.right >= GRID.width() - getMarginCells() * cellSize &&
+                event.rect.bottom >= GRID.height() - getMarginCells() * cellSize) {
                 increaseGrid();
             }
             // Get the current (not rounded) position
@@ -329,28 +394,31 @@ function updateCellSize(newCellSize) {
 
 function fitGrid() {
     // Make the grid fill at least one dimension
-    const maxColumns = getMaxGridColumns();
-    const maxRows = getMaxGridRows();
-
     let columns = getGSColumns();
     let rows = getGSRows();
 
-    let widthRatio = maxColumns / columns;
-    let heightRatio = maxRows / rows;
-
-    // Fit the dimension that will hit the limit first
-    let newCellSize = cellSize * Math.min(widthRatio, heightRatio);
+    // Increase the cell size until maxRows <= rows or maxColumns <= columns
+    // We cannot calculate the exact factor for increasing the cell size because a ratio like
+    // cellSize *= maxColumns / columns depends on maxColumns, which in turn depends on the cell
+    // size. Using a ratio like this will result in a 3 row grid when resizing from 50 rows to 5 for
+    // example.
+    let newCellSize = cellSize;
+    while (rows < getMaxGridRows(newCellSize) && columns < getMaxGridColumns(newCellSize)) {
+        newCellSize *= 1.01;
+    }
     updateCellSize(newCellSize);
     alignGridSelector(columns, rows);
     updateField();
 }
 
-function getMaxGridColumns() {
-    return Math.floor(GRID.width() / cellSize) - 2 * getMarginCells();
+function getMaxGridColumns(_cellSize) {
+    _cellSize = (typeof _cellSize != 'undefined') ? _cellSize : cellSize;
+    return Math.floor(GRID.width() / _cellSize) - 2 * getMarginCells(_cellSize);
 }
 
-function getMaxGridRows() {
-    return Math.floor(GRID.height() / cellSize) - 2 * getMarginCells();
+function getMaxGridRows(_cellSize) {
+    _cellSize = (typeof _cellSize != 'undefined') ? _cellSize : cellSize;
+    return Math.floor(GRID.height() / _cellSize) - 2 * getMarginCells(_cellSize);
 }
 
 function alignGridSelector(desiredColumns, desiredRows) {
@@ -359,21 +427,22 @@ function alignGridSelector(desiredColumns, desiredRows) {
     if (typeof desiredRows == 'undefined') desiredRows = getGSRows();
 
     // Stay within the grid
-    desiredColumns = Math.max(desiredColumns, 0);
-    desiredRows = Math.max(desiredRows, 0);
+    desiredColumns = Math.max(desiredColumns, 5);
+    desiredRows = Math.max(desiredRows, 5);
     desiredColumns = Math.min(getMaxGridColumns(), desiredColumns);
     desiredRows = Math.min(getMaxGridRows(), desiredRows);
 
     // Align the position to the grid
-    let roundedWidth = Math.round(desiredColumns);
-    let roundedHeight = Math.round(desiredRows);
-    GRID_SELECTOR.attr('data-columns', roundedWidth);
-    GRID_SELECTOR.attr('data-rows', roundedHeight);
-    updateGridSelector(roundedWidth * cellSize, roundedHeight * cellSize);
+    let roundedColumns = Math.round(desiredColumns);
+    let roundedRows = Math.round(desiredRows);
+    GRID_SELECTOR.attr('data-columns', roundedColumns);
+    GRID_SELECTOR.attr('data-rows', roundedRows);
+    updateGridSelector(roundedColumns * cellSize, roundedRows * cellSize);
 }
 
-function getMarginCells() {
-    return Math.ceil(GRID_MARGIN / cellSize);
+function getMarginCells(_cellSize) {
+    _cellSize = (typeof _cellSize != 'undefined') ? _cellSize : cellSize;
+    return Math.ceil(GRID_MARGIN / _cellSize);
 }
 
 function updateGridSelector(width, height, x, y) {
@@ -499,12 +568,12 @@ function updateField() {
     return field;
 }
 
-function updateShapes() {
+function updateShapes(force = false) {
     const numRows = getGSRows();
     const numColumns = getGSColumns();
 
     // Don't set new shapes if the dimensions match the field
-    if (shapes.length == numRows && shapes[0].length == numColumns) return;
+    if (!force && shapes.length == numRows && shapes[0].length == numColumns) return;
 
     shapes = [];
     STAGE.removeAllChildren();
@@ -512,7 +581,7 @@ function updateShapes() {
         let shapesRow = [];
         for (let column = 0; column < numColumns; column++) {
             // Create the shape
-            const shape = getCellShape(column, row, CELL_COLOR);
+            const shape = getCellShape(column, row, cellColor);
             shape.visible = false;
             STAGE.addChild(shape);
             shapesRow.push(shape);
