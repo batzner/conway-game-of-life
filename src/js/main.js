@@ -106,7 +106,7 @@ $(function () {
 
     // Edit pixels on click on the grid
     GRID_SELECTOR.click(function (event) {
-        if (!editCellsOnClick) return;
+        if (!editCellsOnClick || MENU.is(":visible")) return;
 
         const [column, row] = getMouseCellCoords(event);
 
@@ -186,6 +186,12 @@ $(function () {
     // Add event listener to some button to toggle the menu on and off.
     $('#insert-pattern-button').click(() => {
         insertPatternMenu.open = !insertPatternMenu.open;
+    });
+
+    // Let the user start playing
+    let explanation = $('#explanation');
+    explanation.find('button').click(function() {
+        explanation.hide();
     });
 
     // Start the game

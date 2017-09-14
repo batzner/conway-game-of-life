@@ -12,6 +12,11 @@ button:focus {
     outline: 0;
 }
 
+a {
+    text-decoration: none;
+    color: #3F51B5;
+}
+
 #game-area {
     position: relative;
     width: 100%;
@@ -205,6 +210,42 @@ button:focus {
 
 .mdc-list-item .sp-replacer {
     width: 30px;
+}
+
+#explanation {
+    background: white;
+    position: absolute;
+    top: 50px;
+    width: 800px;
+    left: calc(50% - 400px);
+    z-index: 10;
+    margin-bottom: 50px;
+}
+
+#explanation button {
+    margin: 0 auto 10px;
+    display: block;
+}
+
+@media (max-width: 575px) {
+    #explanation {
+        width: 300px;
+        left: calc(50% - 150px);
+    }
+}
+
+@media (min-width: 576px) and (max-width: 767px) {
+    #explanation {
+        width: 450px;
+        left: calc(50% - 225px);
+    }
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+    #explanation {
+        width: 600px;
+        left: calc(50% - 300px);
+    }
 }
 
 /* Spectrum modification code */
