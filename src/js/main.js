@@ -165,6 +165,20 @@ $(function () {
         insertPatternMenu.open = !insertPatternMenu.open;
     });
 
+    // Edit pixels on click on the grid
+    GRID_SELECTOR.click(function (event) {
+        const [column, row] = getMouseCellCoords(event);
+
+        if (row < field.length && column < field[row].length) {
+            field[row][column] = !field[row][column];
+            drawFieldUpdates([{
+                row: row,
+                column: column,
+                alive: field[row][column]
+            }]);
+        }
+    });
+
     // Start the game
     randomInit(DENSITY_SLIDER.value / 100);
     createjs.Ticker.addEventListener('tick', function (event) {
@@ -250,8 +264,8 @@ function getMouseCellCoords(event) {
     let x = event.pageX - gridOffset.left;
     let y = event.pageY - gridOffset.top;
 
-    let column = Math.round(x / cellSize);
-    let row = Math.round(y / cellSize);
+    let column = Math.floor(x / cellSize);
+    let row = Math.floor(y / cellSize);
     return [column, row];
 }
 
