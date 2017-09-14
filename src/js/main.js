@@ -44,6 +44,7 @@ let shapes = [];
 let patternPreviewShapes = [];
 let infiniteEdges = true;
 let incrementalUpdates = false;
+let editCellsOnClick = true;
 let cellColor = '#3F51B5';
 
 $(function () {
@@ -95,6 +96,28 @@ $(function () {
     incrementalUpdatesCheckbox.prop('checked', incrementalUpdates);
     incrementalUpdatesCheckbox.click(function () {
         incrementalUpdates = incrementalUpdatesCheckbox.prop('checked');
+    });
+
+    const editCellCheckbox = $('#edit-cells-checkbox');
+    editCellCheckbox.prop('checked', editCellsOnClick);
+    editCellCheckbox.click(function () {
+        editCellsOnClick = editCellCheckbox.prop('checked');
+    });
+
+    // Edit pixels on click on the grid
+    GRID_SELECTOR.click(function (event) {
+        if (!editCellsOnClick) return;
+
+        const [column, row] = getMouseCellCoords(event);
+
+        if (row < field.length && column < field[row].length) {
+            field[row][column] = !field[row][column];
+            drawFieldUpdates([{
+                row: row,
+                column: column,
+                alive: field[row][column]
+            }]);
+        }
     });
 
     $("#colorpicker").spectrum({
@@ -163,20 +186,6 @@ $(function () {
     // Add event listener to some button to toggle the menu on and off.
     $('#insert-pattern-button').click(() => {
         insertPatternMenu.open = !insertPatternMenu.open;
-    });
-
-    // Edit pixels on click on the grid
-    GRID_SELECTOR.click(function (event) {
-        const [column, row] = getMouseCellCoords(event);
-
-        if (row < field.length && column < field[row].length) {
-            field[row][column] = !field[row][column];
-            drawFieldUpdates([{
-                row: row,
-                column: column,
-                alive: field[row][column]
-            }]);
-        }
     });
 
     // Start the game
