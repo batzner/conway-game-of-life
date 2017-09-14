@@ -123,7 +123,7 @@ button:focus {
     text-transform: inherit;
 }
 
-.no-interaction-menu > h4 {
+.no-interaction-menu h4, .mdc-simple-menu h4 {
     margin: 8px 8px 0 8px;
 }
 
@@ -191,4 +191,45 @@ button:focus {
     background-color: white;
     margin-left: 10px;
     float: right;
+}
+
+.mdc-list-item .sp-replacer {
+    width: 30px;
+}
+
+/* Spectrum modification code */
+
+.sp-replacer {
+    width: 30px;
+    height: 30px;
+    float: right;
+    margin-left: 20px;
+    padding: 0;
+    border: none;
+}
+
+.sp-dd {
+    display:none;
+}
+
+.sp-preview {
+    height: 100%;
+    width: 100%;
+    border: none;
+}
+
+.sp-container {
+    border: none;
+    background: white;
+}
+
+.sp-palette .sp-thumb-el:hover, .sp-palette .sp-thumb-el.sp-thumb-active {
+    border: none;
+}
+
+.sp-palette .sp-thumb-el {
+    border: none;
+    margin: 5px;
+    width: 30px;
+    height: 30px;
 }

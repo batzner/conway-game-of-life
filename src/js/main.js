@@ -8,7 +8,6 @@ Number.prototype.mod = function (n) {
 };
 
 // Constants
-const CELL_COLOR = '#3F51B5';
 const PATTERN_PREVIEW_COLOR = '#5fb4b5';
 const GRID_MARGIN = 10;
 const PATTERNS = {
@@ -39,12 +38,13 @@ let DENSITY_SLIDER = null;
 let SPEED_SLIDER = null;
 
 // Global variables
-let cellSize = 12;
+let cellSize = 24;
 let field = [];
 let shapes = [];
 let patternPreviewShapes = [];
 let infiniteEdges = true;
 let incrementalUpdates = false;
+let cellColor = '#3F51B5';
 
 $(function () {
     // Initialize the semi-constants
@@ -96,6 +96,26 @@ $(function () {
     incrementalUpdatesCheckbox.click(function () {
         incrementalUpdates = incrementalUpdatesCheckbox.prop('checked');
     });
+
+    $("#colorpicker").spectrum({
+        color: cellColor,
+        showPaletteOnly: true,
+        showPalette: true,
+        hideAfterPaletteSelect:true,
+        palette: [
+            ['#FFEB3B', '#FF9800', '#F44336', '#F50057'],
+            ['#2196F3', '#00BCD4', '#009688', '#4CAF50'],
+            ['#3F51B5', '#9C27B0', '#673AB7', '#000000']
+        ],
+        change: function (color) {
+            console.log(color);
+            // Change the cell color
+            cellColor = color.toHexString();
+            updateShapes(true);
+        }
+    });
+    $('.sp-replacer').addClass('mdc-elevation--z3');
+    $('.sp-container').addClass('mdc-elevation--z3');
 
     $('#create-game-button').click(function () {
         pause();
@@ -520,12 +540,12 @@ function updateField() {
     return field;
 }
 
-function updateShapes() {
+function updateShapes(force = false) {
     const numRows = getGSRows();
     const numColumns = getGSColumns();
 
     // Don't set new shapes if the dimensions match the field
-    if (shapes.length == numRows && shapes[0].length == numColumns) return;
+    if (!force && shapes.length == numRows && shapes[0].length == numColumns) return;
 
     shapes = [];
     STAGE.removeAllChildren();
@@ -533,7 +553,7 @@ function updateShapes() {
         let shapesRow = [];
         for (let column = 0; column < numColumns; column++) {
             // Create the shape
-            const shape = getCellShape(column, row, CELL_COLOR);
+            const shape = getCellShape(column, row, cellColor);
             shape.visible = false;
             STAGE.addChild(shape);
             shapesRow.push(shape);
