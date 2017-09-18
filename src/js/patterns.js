@@ -1,6 +1,10 @@
 /**
- * Created by Kilian on 06.09.17.
+ * @fileoverview Stores the patterns that can be inserted in the game.
+ *
+ * The coordinates are relative to the pattern's center. The names will be displayed in the patterns
+ * dropdown menu.
  */
+
 const PATTERNS = {
     'Glider': [[-1, 0], [0, 1], [1, -1], [1, 0], [1, 1]],
     'Exploder': [[-1, -1], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 1], [2, 0]],
