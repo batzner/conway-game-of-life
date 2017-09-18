@@ -1,7 +1,3 @@
-/**
- * Created by Kilian on 06.09.17.
- */
-
 // Util functions
 Number.prototype.mod = function (n) {
     return ((this % n) + n) % n;
@@ -483,7 +479,7 @@ function drawField() {
 
 function drawFieldUpdates(updates) {
     for (let update of updates) {
-        shapes[update.row][update.column].visible = update.alive;
+        shapes[update.row][update.column].visible = update.isAlive;
     }
     STAGE.update();
 }
