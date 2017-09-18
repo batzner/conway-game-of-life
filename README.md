@@ -1,6 +1,6 @@
 # Conway's Game of Life
 
-
+![](https://raw.githubusercontent.com/batzner/conway-game-of-life/master/showcase.gif)
 
 ## Setup
 
