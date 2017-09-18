@@ -25,7 +25,7 @@ let SPEED_SLIDER = null;
 
 // Global variables
 let cellSize = 24;
-let field = [];
+let field = null;
 let shapes = [];
 let patternPreviewShapes = [];
 let infiniteEdges = true;
@@ -51,6 +51,11 @@ $(function () {
     initGridSelector();
 
     initializeControls();
+
+    // Initialize the model
+    const numRows = getGSRows();
+    const numColumns = getGSColumns();
+    field = new Field(numRows, numColumns);
 
     // Respond to window resizing
     $(window).resize(function () {
@@ -232,14 +237,9 @@ function editCell(event) {
     if (!editCellsOnClick || MENU.is(":visible")) return;
 
     const [row, column] = getMouseCellCoords(event);
-
-    if (row < field.length && column < field[row].length) {
-        field[row][column] = !field[row][column];
-        drawFieldUpdates([{
-            row: row,
-            column: column,
-            alive: field[row][column]
-        }]);
+    const fieldUpdate = field.flipCell(row, column);
+    if (fieldUpdate) {
+        drawFieldUpdates([fieldUpdate]);
     }
 }
 
@@ -277,21 +277,7 @@ function stopInsertPatternMode() {
 }
 
 function setPattern(pattern, centerRow, centerColumn) {
-    let fieldUpdates = [];
-    for (let cell of pattern) {
-        let row = cell[0] + centerRow;
-        let column = cell[1] + centerColumn;
-
-        if (0 <= row && row < field.length && 0 <= column && column < field[row].length) {
-            field[row][column] = true;
-            fieldUpdates.push({
-                row: row,
-                column: column,
-                alive: true
-            });
-        }
-    }
-
+    const fieldUpdates = field.setPattern(pattern, centerRow, centerColumn);
     drawFieldUpdates(fieldUpdates);
 }
 
@@ -491,67 +477,14 @@ function updateGridSelector(width, height, x, y) {
 
 function tick() {
     // Update the field and draw it
-    let updates = [];
-    let newField = [];
-
-    for (let row = 0; row < field.length; row++) {
-        let newRow = [];
-        for (let column = 0; column < field[row].length; column++) {
-            const neighborsCount = getNeighborsCount(row, column);
-            const willBeAlive = neighborsCount == 3 || neighborsCount == 2 && field[row][column];
-
-            // Set an update if necessary
-            if (willBeAlive != field[row][column]) {
-                updates.push({
-                    row: row,
-                    column: column,
-                    alive: willBeAlive
-                });
-            }
-            newRow.push(willBeAlive);
-
-            // Incremental cell updates that can be used by the following cells
-            if (incrementalUpdates) field[row][column] = willBeAlive;
-        }
-        newField.push(newRow)
-    }
-    field = newField;
+    let updates = field.step(infiniteEdges, incrementalUpdates);
     drawFieldUpdates(updates);
 }
 
-function getNeighborsCount(cellRow, cellColumn) {
-    const rowIndices = [cellRow - 1, cellRow, cellRow + 1];
-    const columnIndices = [cellColumn - 1, cellColumn, cellColumn + 1];
-
-    let neighborsCount = 0;
-    for (let rowIndex of rowIndices) {
-        // Handle out of bounds cases
-        if (!infiniteEdges && (rowIndex < 0 || rowIndex >= field.length)) continue;
-        let row = rowIndex.mod(field.length);
-
-        for (let columnIndex of columnIndices) {
-            // Handle out of bounds cases
-            if (!infiniteEdges && (columnIndex < 0 || columnIndex >= field[row].length)) continue;
-            let column = columnIndex.mod(field[row].length);
-
-            // Check the neighbor
-            if (field[row][column] == true && !(row == cellRow && column == cellColumn)) {
-                neighborsCount += 1;
-
-                // Return early for too many neighbors
-                if (neighborsCount > 3) return neighborsCount;
-            }
-        }
-    }
-    return neighborsCount;
-}
-
 function drawField() {
-    for (let row = 0; row < field.length; row++) {
-        for (let column = 0; column < field[row].length; column++) {
-            shapes[row][column].visible = field[row][column] == true;
-        }
-    }
+    field.forEach((row, column, isAlive) => {
+        shapes[row][column].visible = isAlive;
+    });
     STAGE.update();
 }
 
@@ -562,32 +495,21 @@ function drawFieldUpdates(updates) {
     STAGE.update();
 }
 
+function randomInit(density) {
+    // Make sure the field matches the current grid selectors dimensions
+    updateField();
+    field.randomInit(density);
+    drawField();
+}
+
 function updateField() {
     const numRows = getGSRows();
     const numColumns = getGSColumns();
 
-    // Crop rows if necessary
-    field = field.slice(0, numRows);
-    // Add rows if necessary
-    if (field.length < numRows) {
-        const newRows = new Array(numRows - field.length).fill([]);
-        Array.prototype.push.apply(field, newRows);
-    }
-
-    for (let row = 0; row < field.length; row++) {
-        // Crop columns if necessary
-        field[row] = field[row].slice(0, numColumns);
-        // Add columns if necessary
-        if (field[row].length < numColumns) {
-            const newColumns = new Array(numColumns - field[row].length).fill(false);
-            Array.prototype.push.apply(field[row], newColumns);
-        }
-    }
+    field.updateSize(numRows, numColumns);
 
     // Make sure the shapes always match the field
     updateShapes();
-
-    return field;
 }
 
 function updateShapes(force = false) {
@@ -622,15 +544,4 @@ function getCellShape(column, row, color) {
         .beginFill(color)
         .drawRect((column + margin) * cellSize, (row + margin) * cellSize, cellSize, cellSize);
     return shape;
-}
-
-function randomInit(density) {
-    // Make sure the field matches the current grid selectors dimensions
-    updateField();
-    for (let row = 0; row < getGSRows(); row++) {
-        for (let column = 0; column < getGSColumns(); column++) {
-            field[row][column] = Math.random() <= density;
-        }
-    }
-    drawField();
 }

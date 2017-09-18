@@ -24,3 +24,6 @@ For deployment:
 
 ## Functionality
 
+## Extensibility 
+
+Add new patterns by modifying `src/js/patterns.js`.
