@@ -10,20 +10,6 @@ Number.prototype.mod = function (n) {
 // Constants
 const PATTERN_PREVIEW_COLOR = '#5fb4b5';
 const GRID_MARGIN = 10;
-const PATTERNS = {
-    'Glider': [[-1, 0], [0, 1], [1, -1], [1, 0], [1, 1]],
-    'Exploder': [[-1, -1], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 1], [2, 0]],
-    'Spaceship': [[-2, -1], [-2, 0], [-2, 1], [-2, 2], [-1, -2], [-1, 2], [0, 2], [1, -2], [1, 1]],
-    '10 Cell Row': [[0, -4], [0, -3], [0, -2], [0, -1], [0, 0], [0, 1], [0, 2], [0, 3], [0, 4],
-        [0, 5]],
-    'Glider Gun': [[0, -18], [0, -17], [1, -18], [1, -17], [0, -8], [1, -8], [2, -8], [-1, -7],
-        [-2, -6], [-2, -5], [3, -7], [4, -6], [4, -5], [1, -4], [-1, -3], [0, -2], [1, -2],
-        [2, -2], [1, -1], [3, -3], [-2, 2], [-1, 2], [0, 2], [-2, 3], [-1, 3], [0, 3], [-3, 4],
-        [1, 4], [-4, 6], [-3, 6], [1, 6], [2, 6], [-2, 16], [-1, 16], [-2, 17], [-1, 17]],
-    'Train': [[-3, -9], [-3, -8], [-3, -7], [-3, 5], [-3, 6], [-3, 7], [-2, -10], [-2, -7],
-        [-2, 4], [-2, 7], [-1, -7], [-1, -2], [-1, -1], [-1, 0], [-1, 7], [0, -7], [0, -2], [0, 1],
-        [0, 7], [1, -8], [1, -3], [1, 6]]
-};
 
 // Semi-constant variables
 let STAGE = null;
@@ -59,10 +45,12 @@ $(function () {
     MENU = $('#menu');
     DENSITY_VALUE_DISPLAY = $('#density-value-display');
 
-    // Initialize the grid
+    // Initialize the grid and controls
     fitCanvasToGrid();
     updateCellSize(cellSize);
     initGridSelector();
+
+    initializeControls();
 
     // Respond to window resizing
     $(window).resize(function () {
@@ -74,66 +62,44 @@ $(function () {
             updateField();
 
             // Resizing will mess up the sliders
-            initializeSliders();
+            initializeSettingsSliders();
         }, 250);
-    });
-
-    // Initialize the menu
-    initializeSliders();
-
-    // Initialize the checkboxes
-    mdc.checkbox.MDCCheckbox.attachTo(document.querySelector('.mdc-checkbox'));
-
-    const infiniteEdgesCheckbox = $('#infinite-edges-checkbox');
-    infiniteEdgesCheckbox.prop('checked', infiniteEdges);
-    infiniteEdgesCheckbox.click(function () {
-        infiniteEdges = infiniteEdgesCheckbox.prop('checked');
-    });
-
-    const incrementalUpdatesCheckbox = $('#incremental-updates-checkbox');
-    incrementalUpdatesCheckbox.prop('checked', incrementalUpdates);
-    incrementalUpdatesCheckbox.click(function () {
-        incrementalUpdates = incrementalUpdatesCheckbox.prop('checked');
-    });
-
-    const editCellCheckbox = $('#edit-cells-checkbox');
-    editCellCheckbox.prop('checked', editCellsOnClick);
-    editCellCheckbox.click(function () {
-        editCellsOnClick = editCellCheckbox.prop('checked');
     });
 
     // Edit pixels on click on the grid
     GRID_SELECTOR.on('click.editCell', editCell);
 
-    $("#colorpicker").spectrum({
-        color: cellColor,
-        showPaletteOnly: true,
-        showPalette: true,
-        hideAfterPaletteSelect: true,
-        palette: [
-            ['#FFEB3B', '#FF9800', '#F44336', '#F50057'],
-            ['#2196F3', '#00BCD4', '#009688', '#4CAF50'],
-            ['#3F51B5', '#9C27B0', '#673AB7', '#000000']
-        ],
-        change: function (color) {
-            // Change the cell color
-            cellColor = color.toHexString();
-            updateShapes(true);
-        }
+    // Start the game
+    randomInit(DENSITY_SLIDER.value / 100);
+    createjs.Ticker.addEventListener('tick', function (event) {
+        if (!event.paused) tick();
     });
-    $('.sp-replacer').addClass('mdc-elevation--z3');
-    $('.sp-container').addClass('mdc-elevation--z3');
+    createjs.Ticker.setFPS(SPEED_SLIDER.value);
+});
 
-    $('#create-game-button').click(function () {
+function initializeControls() {
+    initializeSettingsMenu();
+    initializePatternMenu();
+
+    $('#pause-resume-button').click(togglePauseResume);
+    $('#next-step-button').click(function () {
         pause();
-        randomInit(DENSITY_SLIDER.value / 100);
-        MENU.hide();
+        tick();
     });
 
-    $('#clear-button').click(function () {
-        randomInit(0);
-        MENU.hide();
+    // Let the user start playing
+    let explanation = $('#explanation');
+    explanation.find('button').click(function () {
+        explanation.hide();
     });
+}
+
+function initializeSettingsMenu() {
+    // Initialize the menu elements
+    initializeSettingsSliders();
+    initializeSettingsCheckboxes();
+    initializeCellColorPicker();
+    initializeSettingsButtons();
 
     // Hide the menu on outside clicks
     $(document).click(function (event) {
@@ -144,50 +110,14 @@ $(function () {
         }
     });
 
-    // Initialize the buttons
+    // Activate the control for opening the menu
     $('#menu-button').click(() => {
         MENU.show('fast');
     });
-    $('#pause-resume-button').click(togglePauseResume);
-    $('#next-step-button').click(function () {
-        pause();
-        tick();
-    });
+}
 
-    // Initialize the insert-pattern menu
-    let insertPatternList = $('#insert-pattern-menu').find('ul');
-    Object.keys(PATTERNS).forEach(patternName => {
-        const pattern = PATTERNS[patternName];
-        if (!pattern) return;
-
-        const item = $('<li class="mdc-list-item" role="menuitem" tabindex="0"></li>');
-        item.html(patternName);
-        item.click(() => startInsertPatternMode(pattern));
-        insertPatternList.append(item);
-    });
-    let insertPatternMenu = new mdc.menu.MDCSimpleMenu(
-        document.querySelector('#insert-pattern-menu')
-    );
-    // Add event listener to some button to toggle the menu on and off.
-    $('#insert-pattern-button').click(() => {
-        insertPatternMenu.open = !insertPatternMenu.open;
-    });
-
-    // Let the user start playing
-    let explanation = $('#explanation');
-    explanation.find('button').click(function () {
-        explanation.hide();
-    });
-
-    // Start the game
-    randomInit(DENSITY_SLIDER.value / 100);
-    createjs.Ticker.addEventListener('tick', function (event) {
-        if (!event.paused) tick();
-    });
-    createjs.Ticker.setFPS(SPEED_SLIDER.value);
-});
-
-function initializeSliders() {
+function initializeSettingsSliders() {
+    // TODO: Copy MDC description of rendering in here
     let menuWasVisible = MENU.is(":visible") && MENU.hasClass('no-interaction-menu--open');
     MENU.addClass('no-interaction-menu--open');
     if (!menuWasVisible) MENU.show();
@@ -210,6 +140,85 @@ function initializeSliders() {
     if (!menuWasVisible) MENU.hide();
 }
 
+function initializeSettingsCheckboxes() {
+    mdc.checkbox.MDCCheckbox.attachTo(document.querySelector('.mdc-checkbox'));
+
+    const infiniteEdgesCheckbox = $('#infinite-edges-checkbox');
+    infiniteEdgesCheckbox.prop('checked', infiniteEdges);
+    infiniteEdgesCheckbox.click(function () {
+        infiniteEdges = infiniteEdgesCheckbox.prop('checked');
+    });
+
+    const incrementalUpdatesCheckbox = $('#incremental-updates-checkbox');
+    incrementalUpdatesCheckbox.prop('checked', incrementalUpdates);
+    incrementalUpdatesCheckbox.click(function () {
+        incrementalUpdates = incrementalUpdatesCheckbox.prop('checked');
+    });
+
+    const editCellCheckbox = $('#edit-cells-checkbox');
+    editCellCheckbox.prop('checked', editCellsOnClick);
+    editCellCheckbox.click(function () {
+        editCellsOnClick = editCellCheckbox.prop('checked');
+    });
+}
+
+function initializeCellColorPicker() {
+    $("#colorpicker").spectrum({
+        color: cellColor,
+        showPaletteOnly: true,
+        showPalette: true,
+        hideAfterPaletteSelect: true,
+        palette: [
+            ['#FFEB3B', '#FF9800', '#F44336', '#F50057'],
+            ['#2196F3', '#00BCD4', '#009688', '#4CAF50'],
+            ['#3F51B5', '#9C27B0', '#673AB7', '#000000']
+        ],
+        change: function (color) {
+            // Change the cell color
+            cellColor = color.toHexString();
+            updateShapes(true);
+        }
+    });
+    $('.sp-replacer').addClass('mdc-elevation--z3');
+    $('.sp-container').addClass('mdc-elevation--z3');
+}
+
+function initializeSettingsButtons() {
+    $('#create-game-button').click(function () {
+        pause();
+        randomInit(DENSITY_SLIDER.value / 100);
+        MENU.hide();
+    });
+
+    $('#clear-button').click(function () {
+        randomInit(0);
+        MENU.hide();
+    });
+}
+
+function initializePatternMenu() {
+    // Initialize the insert-pattern menu
+    let insertPatternList = $('#insert-pattern-menu').find('ul');
+    Object.keys(PATTERNS).forEach(patternName => {
+        const pattern = PATTERNS[patternName];
+        if (!pattern) return;
+
+        const item = $('<li class="mdc-list-item" role="menuitem" tabindex="0"></li>');
+        item.html(patternName);
+        item.click(() => startInsertPatternMode(pattern));
+        insertPatternList.append(item);
+    });
+
+    let insertPatternMenu = new mdc.menu.MDCSimpleMenu(
+        document.querySelector('#insert-pattern-menu')
+    );
+
+    // Activate the control for opening the menu
+    $('#insert-pattern-button').click(() => {
+        insertPatternMenu.open = !insertPatternMenu.open;
+    });
+}
+
 function fitCanvasToGrid() {
     // Let the canvas fill the game area
     $('canvas').each(function (_, el) {
@@ -222,7 +231,7 @@ function fitCanvasToGrid() {
 function editCell(event) {
     if (!editCellsOnClick || MENU.is(":visible")) return;
 
-    const [column, row] = getMouseCellCoords(event);
+    const [row, column] = getMouseCellCoords(event);
 
     if (row < field.length && column < field[row].length) {
         field[row][column] = !field[row][column];
@@ -244,32 +253,18 @@ function startInsertPatternMode(pattern) {
 
     // Show the pattern where the mouse is
     GRID_SELECTOR.mousemove(function (event) {
-        let [centerColumn, centerRow] = getMouseCellCoords(event);
+        let [centerRow, centerColumn] = getMouseCellCoords(event);
         showPatternPreview(pattern, centerColumn, centerRow);
     });
 
     GRID_SELECTOR.on('click.insertPattern', function (event) {
-        let [centerColumn, centerRow] = getMouseCellCoords(event);
+        let [centerRow, centerColumn] = getMouseCellCoords(event);
 
         // Set the pattern in the field
-        let fieldUpdates = [];
-        for (let cell of pattern) {
-            let row = cell[0] + centerRow;
-            let column = cell[1] + centerColumn;
-
-            if (0 <= row && row < field.length && 0 <= column && column < field[row].length) {
-                field[row][column] = true;
-                fieldUpdates.push({
-                    row: row,
-                    column: column,
-                    alive: true
-                });
-            }
-        }
+        setPattern(pattern, centerRow, centerColumn);
 
         // Stop the pattern previews
         stopInsertPatternMode();
-        drawFieldUpdates(fieldUpdates);
     });
 }
 
@@ -281,15 +276,34 @@ function stopInsertPatternMode() {
     GRID_SELECTOR.on('click.editCell', editCell);
 }
 
+function setPattern(pattern, centerRow, centerColumn) {
+    let fieldUpdates = [];
+    for (let cell of pattern) {
+        let row = cell[0] + centerRow;
+        let column = cell[1] + centerColumn;
+
+        if (0 <= row && row < field.length && 0 <= column && column < field[row].length) {
+            field[row][column] = true;
+            fieldUpdates.push({
+                row: row,
+                column: column,
+                alive: true
+            });
+        }
+    }
+
+    drawFieldUpdates(fieldUpdates);
+}
+
 function getMouseCellCoords(event) {
     // Get the mouse position relative to the grid
     let gridOffset = GRID_SELECTOR.offset();
     let x = event.pageX - gridOffset.left;
     let y = event.pageY - gridOffset.top;
 
-    let column = Math.floor(x / cellSize);
     let row = Math.floor(y / cellSize);
-    return [column, row];
+    let column = Math.floor(x / cellSize);
+    return [row, column];
 }
 
 function showPatternPreview(pattern, centerColumn, centerRow) {
