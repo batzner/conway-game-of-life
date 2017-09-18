@@ -1,6 +1,6 @@
 # Conway's Game of Life
 
-**Showcase:** [http://mlowl.com/conway-game-of-life/]()
+**Showcase:** [http://mlowl.com/conway-game-of-life/](http://mlowl.com/conway-game-of-life/)
 
 [![](https://raw.githubusercontent.com/batzner/conway-game-of-life/master/showcase.gif)](http://mlowl.com/conway-game-of-life/)
 

@@ -8,10 +8,11 @@ Number.prototype.mod = function (n) {
 };
 
 // Constants
+const DEFAULT_CELL_COLOR = '#3F51B5';
 const PATTERN_PREVIEW_COLOR = '#5fb4b5';
 const GRID_MARGIN = 10;
 
-// Semi-constant variables
+// Semi-constant variables initialized once the document is ready
 let STAGE = null;
 let GRID = null;
 let GRID_SELECTOR = null;
@@ -28,10 +29,6 @@ let cellSize = 24;
 let field = null;
 let shapes = [];
 let patternPreviewShapes = [];
-let infiniteEdges = true;
-let incrementalUpdates = false;
-let editCellsOnClick = true;
-let cellColor = '#3F51B5';
 
 $(function () {
     // Initialize the semi-constants
@@ -53,8 +50,8 @@ $(function () {
     initializeControls();
 
     // Initialize the model
-    const numRows = getGSRows();
-    const numColumns = getGSColumns();
+    const numRows = getSelectedGridRows();
+    const numColumns = getSelectedGridColumns();
     field = new Field(numRows, numColumns);
 
     // Respond to window resizing
@@ -123,7 +120,7 @@ function initializeSettingsMenu() {
 
 function initializeSettingsSliders() {
     // TODO: Copy MDC description of rendering in here
-    let menuWasVisible = MENU.is(":visible") && MENU.hasClass('no-interaction-menu--open');
+    let menuWasVisible = MENU.is(':visible') && MENU.hasClass('no-interaction-menu--open');
     MENU.addClass('no-interaction-menu--open');
     if (!menuWasVisible) MENU.show();
 
@@ -149,27 +146,19 @@ function initializeSettingsCheckboxes() {
     mdc.checkbox.MDCCheckbox.attachTo(document.querySelector('.mdc-checkbox'));
 
     const infiniteEdgesCheckbox = $('#infinite-edges-checkbox');
-    infiniteEdgesCheckbox.prop('checked', infiniteEdges);
-    infiniteEdgesCheckbox.click(function () {
-        infiniteEdges = infiniteEdgesCheckbox.prop('checked');
-    });
+    infiniteEdgesCheckbox.prop('checked', true);
 
     const incrementalUpdatesCheckbox = $('#incremental-updates-checkbox');
-    incrementalUpdatesCheckbox.prop('checked', incrementalUpdates);
-    incrementalUpdatesCheckbox.click(function () {
-        incrementalUpdates = incrementalUpdatesCheckbox.prop('checked');
-    });
+    incrementalUpdatesCheckbox.prop('checked', false);
 
     const editCellCheckbox = $('#edit-cells-checkbox');
-    editCellCheckbox.prop('checked', editCellsOnClick);
-    editCellCheckbox.click(function () {
-        editCellsOnClick = editCellCheckbox.prop('checked');
-    });
+    editCellCheckbox.prop('checked', true);
 }
 
 function initializeCellColorPicker() {
-    $("#colorpicker").spectrum({
-        color: cellColor,
+    let picker = $('#colorpicker');
+    picker.spectrum({
+        color: DEFAULT_CELL_COLOR,
         showPaletteOnly: true,
         showPalette: true,
         hideAfterPaletteSelect: true,
@@ -180,12 +169,13 @@ function initializeCellColorPicker() {
         ],
         change: function (color) {
             // Change the cell color
-            cellColor = color.toHexString();
             updateShapes(true);
         }
     });
     $('.sp-replacer').addClass('mdc-elevation--z3');
     $('.sp-container').addClass('mdc-elevation--z3');
+
+    picker.val(DEFAULT_CELL_COLOR);
 }
 
 function initializeSettingsButtons() {
@@ -234,7 +224,8 @@ function fitCanvasToGrid() {
 }
 
 function editCell(event) {
-    if (!editCellsOnClick || MENU.is(":visible")) return;
+    let editCellsOnClick = $('#edit-cells-checkbox').prop('checked');
+    if (!editCellsOnClick || MENU.is(':visible')) return;
 
     const [row, column] = getMouseCellCoords(event);
     const fieldUpdate = field.flipCell(row, column);
@@ -334,11 +325,11 @@ function togglePauseResume() {
     button.find('.material-icons').first().html(icon);
 }
 
-function getGSRows() {
+function getSelectedGridRows() {
     return parseFloat(GRID_SELECTOR.attr('data-rows'));
 }
 
-function getGSColumns() {
+function getSelectedGridColumns() {
     return parseFloat(GRID_SELECTOR.attr('data-columns'));
 }
 
@@ -402,8 +393,8 @@ function updateCellSize(newCellSize) {
 
 function fitGrid() {
     // Make the grid fill at least one dimension
-    let columns = getGSColumns();
-    let rows = getGSRows();
+    let columns = getSelectedGridColumns();
+    let rows = getSelectedGridRows();
 
     // Increase the cell size until maxRows <= rows or maxColumns <= columns
     // We cannot calculate the exact factor for increasing the cell size because a ratio like
@@ -431,8 +422,8 @@ function getMaxGridRows(_cellSize) {
 
 function alignGridSelector(desiredColumns, desiredRows) {
     // Default is to keep the same number of columns and rows
-    if (typeof desiredColumns == 'undefined') desiredColumns = getGSColumns();
-    if (typeof desiredRows == 'undefined') desiredRows = getGSRows();
+    if (typeof desiredColumns == 'undefined') desiredColumns = getSelectedGridColumns();
+    if (typeof desiredRows == 'undefined') desiredRows = getSelectedGridRows();
 
     // Stay within the grid
     desiredColumns = Math.max(desiredColumns, 5);
@@ -477,6 +468,8 @@ function updateGridSelector(width, height, x, y) {
 
 function tick() {
     // Update the field and draw it
+    let infiniteEdges = $('#infinite-edges-checkbox').prop('checked');
+    let incrementalUpdates = $('#incremental-updates-checkbox').prop('checked');
     let updates = field.step(infiniteEdges, incrementalUpdates);
     drawFieldUpdates(updates);
 }
@@ -503,8 +496,8 @@ function randomInit(density) {
 }
 
 function updateField() {
-    const numRows = getGSRows();
-    const numColumns = getGSColumns();
+    const numRows = getSelectedGridRows();
+    const numColumns = getSelectedGridColumns();
 
     field.updateSize(numRows, numColumns);
 
@@ -513,8 +506,8 @@ function updateField() {
 }
 
 function updateShapes(force = false) {
-    const numRows = getGSRows();
-    const numColumns = getGSColumns();
+    const numRows = getSelectedGridRows();
+    const numColumns = getSelectedGridColumns();
 
     // Don't set new shapes if the dimensions match the field
     if (!force && shapes.length == numRows && shapes[0].length == numColumns) return;
@@ -525,6 +518,7 @@ function updateShapes(force = false) {
         let shapesRow = [];
         for (let column = 0; column < numColumns; column++) {
             // Create the shape
+            const cellColor = $('#colorpicker').val();
             const shape = getCellShape(column, row, cellColor);
             shape.visible = false;
             STAGE.addChild(shape);
