@@ -3,6 +3,16 @@
  */
 
 /**
+ * Util function for calculating a positive modulo of a number.
+ * @param {!number} dividend - The number to divide
+ * @param {!number} divisor - The number to divide by
+ * @returns {number} - A number in [0, divisor[
+ */
+function positiveMod(dividend, divisor) {
+    return ((dividend % divisor) + divisor) % divisor;
+}
+
+/**
  * A class representing an instance of the Game of Life.
  */
 class Field {
@@ -188,14 +198,14 @@ class Field {
             if (!infiniteEdges && (rowIndex < 0 || rowIndex >= this.field.length)) {
                 continue;
             }
-            let row = rowIndex.mod(this.field.length);
+            let row = positiveMod(rowIndex, this.field.length);
 
             for (let columnIndex of columnIndices) {
                 // Handle out of bounds cases
                 if (!infiniteEdges && (columnIndex < 0 || columnIndex >= this.field[row].length)) {
                     continue;
                 }
-                let column = columnIndex.mod(this.field[row].length);
+                let column = positiveMod(columnIndex, this.field[row].length);
 
                 // Check the neighbor
                 if (this.field[row][column] == true && !(row == cellRow && column == cellColumn)) {

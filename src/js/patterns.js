@@ -1,6 +1,8 @@
 /**
  * @fileoverview Stores the patterns that can be inserted in the game.
  *
+ * You can extend the patterns object as you like.
+ *
  * The coordinates are relative to the pattern's center. The names will be displayed in the patterns
  * dropdown menu.
  */

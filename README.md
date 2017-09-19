@@ -20,7 +20,7 @@ For deployment:
 1. Switch to the `gh-pages` branch.
 2. Run `npm install --only=production` in the project's root directory.
 3. Run `gulp` in the project's root directory. This will transpile and minify the .js files to ECMAScript 5 and include [Babel's polyfill](https://babeljs.io/docs/usage/polyfill/).
-4. Open `index.html` with any modern browser.
+4. Open `index.html` with IE11+ or any modern browser.
 
 ## Functionality
 
