@@ -184,8 +184,7 @@ class Field {
      * @param {!number} cellRow
      * @param {!number} cellColumn
      * @param {boolean} infiniteEdges -  If True, the cell's at opposing edges are neighbors.
-     * @returns {number} - The number of neighbors. For numbers greater than or equal to 4, the
-     *      result will be 4.
+     * @returns {number} - The number of neighbors.
      */
     getNeighborsCount(cellRow, cellColumn, infiniteEdges) {
         // Get the indices of the neighbors
@@ -210,9 +209,6 @@ class Field {
                 // Check the neighbor
                 if (this.field[row][column] == true && !(row == cellRow && column == cellColumn)) {
                     neighborsCount += 1;
-
-                    // Return early for too many neighbors
-                    if (neighborsCount > 3) return neighborsCount;
                 }
             }
         }
