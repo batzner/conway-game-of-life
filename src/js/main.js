@@ -517,10 +517,19 @@ function updateCellSize(newCellSize) {
     // accordingly, otherwise the grid pattern background won't align with the canvas and grid
     // selector.
     cellSize = Math.round(newCellSize * 10) / 10;
+    let imageUrl = "src/img/grid32@2x.png";
+    if (8 < cellSize && cellSize <= 16) {
+        imageUrl = "src/img/grid16@2x.png";
+    } else if (4 < cellSize && cellSize <= 8) {
+        imageUrl = "src/img/grid8@2x.png";
+    } else if (cellSize <= 4) {
+        imageUrl = "src/img/grid4@2x.png";
+    }
 
     // Update the grid
     const styleVal = cellSize * 10 + 'px ' + cellSize * 10 + 'px';
     GRID.css('background-size', styleVal);
+    GRID.css('background-image', 'url("' + imageUrl + '")');
 }
 
 /**

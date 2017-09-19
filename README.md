@@ -37,5 +37,4 @@ Add new patterns by modifying `src/js/patterns.js`.
 ## Limitations
 
 - The browser window should have a minimum height of 540px for the menus to be fully visible.
-- To draw the "sketched" grid pattern efficiently, we use a repeated background in CSS. Safari renders a small cell size terribly, Firefox ok, Chrome good. 
 - In Firefox, the dashed outline of the game area is displaced at the lower and right edges. This is due to the Firefox outline descendants bug: [https://bugzilla.mozilla.org/show_bug.cgi?id=687311](https://bugzilla.mozilla.org/show_bug.cgi?id=687311)
