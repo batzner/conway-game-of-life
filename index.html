@@ -25,13 +25,16 @@
     <meta name="theme-color" content="#ffffff">
     <!-- END Favicons -->
 
-    <link rel="stylesheet" href="node_modules/material-components-web/dist/material-components-web.min.css">
+    <!-- BEGIN CSS Libraries -->
+    <!-- Material Design Components -->
+    <link rel="stylesheet" href="https://unpkg.com/material-components-web@0.20.0/dist/material-components-web.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500">
-    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.0/spectrum.min.css">
-    <!-- END Library CSS -->
+    <!-- Spectrum color picker -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.0/spectrum.min.css">
+    <!-- END CSS Libraries -->
 
-    <link rel="stylesheet" type="text/css" href="dist/css/main.css">
+    <link rel="stylesheet" href="dist/css/main.css">
 </head>
 <body>
 
@@ -63,7 +66,7 @@
                 <div>
                     Speed
                     <div id="speed-slider" class="mdc-slider" tabindex="0" role="slider"
-                         aria-valuemin="1" aria-valuemax="20" aria-valuenow="2"
+                         aria-valuemin="1" aria-valuemax="20" aria-valuenow="5"
                          aria-label="Select Speed">
                         <div class="mdc-slider__track-container">
                             <div class="mdc-slider__track"></div>
@@ -200,6 +203,9 @@
         <h2 class="mdc-card__subtitle">By John Conway</h2>
     </section>
     <section class="mdc-card__supporting-text">
+
+        A simulation of the life cycles of patterns.
+
         <h2 class="mdc-typography--title">The Rules</h2>
 
         For a space that is 'populated':
@@ -222,16 +228,24 @@
     </section>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js" type="text/javascript"></script>
-<script src="https://code.createjs.com/easeljs-0.8.2.min.js" type="text/javascript"></script>
-<script src="http://code.interactjs.io/v1.2.9/interact.min.js" type="text/javascript"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.0/spectrum.min.js"></script>
-
+<!-- BEGIN JS Libraries -->
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script type="text/javascript" src="https://code.createjs.com/easeljs-0.8.2.min.js"></script>
+<script type="text/javascript" src="http://code.interactjs.io/v1.2.9/interact.min.js"></script>
+<!-- Spectrum color picker -->
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.0/spectrum.min.js"></script>
 <!-- Material Design -->
-<script src="node_modules/material-components-web/dist/material-components-web.min.js"></script>
-<script>mdc.autoInit()</script>
+<script type="text/javascript" src="https://unpkg.com/material-components-web@0.20.0/dist/material-components-web.min.js"></script>
+<script>
+    mdc.autoInit();
+</script>
+<!-- END JS Libraries -->
 
-<script src="dist/js/lib/polyfill.min.js"></script>
-<script src="dist/js/main.js" type="text/javascript"></script>
+<!-- Babel Polyfill -->
+<script type="text/javascript" src="dist/js/lib/polyfill.min.js"></script>
+
+<script type="text/javascript" src="dist/js/model.js"></script>
+<script type="text/javascript" src="dist/js/patterns.js"></script>
+<script type="text/javascript" src="dist/js/main.js"></script>
 </body>
 </html>

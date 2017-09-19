@@ -5,7 +5,6 @@ const eslint = require('gulp-eslint');
 const clean = require('gulp-clean');
 const babel = require('gulp-babel');
 const uglify = require('gulp-uglify');
-const concat = require('gulp-concat');
 const imagemin = require('gulp-imagemin');
 const rename = require('gulp-rename');
 
@@ -37,6 +36,7 @@ gulp.task('_javascripts', ['_copy'], function () {
         .pipe(babel({
             presets: ['es2015']
         }))
+        .pipe(uglify())
         .pipe(gulp.dest(distDir));
 });
 

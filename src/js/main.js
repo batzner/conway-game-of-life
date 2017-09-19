@@ -1,52 +1,80 @@
 /**
- * Created by Kilian on 06.09.17.
+ * @fileoverview The game's View-Controller connecting the game's model to the document.
  */
 
-// Util functions
-Number.prototype.mod = function (n) {
-    return ((this % n) + n) % n;
-};
-
 // Constants
+const DEFAULT_CELL_COLOR = '#3F51B5';
 const PATTERN_PREVIEW_COLOR = '#5fb4b5';
-const GRID_MARGIN = 10;
-const PATTERNS = {
-    'Glider': [[-1, 0], [0, 1], [1, -1], [1, 0], [1, 1]],
-    'Exploder': [[-1, -1], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 1], [2, 0]],
-    'Spaceship': [[-2, -1], [-2, 0], [-2, 1], [-2, 2], [-1, -2], [-1, 2], [0, 2], [1, -2], [1, 1]],
-    '10 Cell Row': [[0, -4], [0, -3], [0, -2], [0, -1], [0, 0], [0, 1], [0, 2], [0, 3], [0, 4],
-        [0, 5]],
-    'Glider Gun': [[0, -18], [0, -17], [1, -18], [1, -17], [0, -8], [1, -8], [2, -8], [-1, -7],
-        [-2, -6], [-2, -5], [3, -7], [4, -6], [4, -5], [1, -4], [-1, -3], [0, -2], [1, -2],
-        [2, -2], [1, -1], [3, -3], [-2, 2], [-1, 2], [0, 2], [-2, 3], [-1, 3], [0, 3], [-3, 4],
-        [1, 4], [-4, 6], [-3, 6], [1, 6], [2, 6], [-2, 16], [-1, 16], [-2, 17], [-1, 17]],
-    'Train': [[-3, -9], [-3, -8], [-3, -7], [-3, 5], [-3, 6], [-3, 7], [-2, -10], [-2, -7],
-        [-2, 4], [-2, 7], [-1, -7], [-1, -2], [-1, -1], [-1, 0], [-1, 7], [0, -7], [0, -2], [0, 1],
-        [0, 7], [1, -8], [1, -3], [1, 6]]
-};
+const MIN_GRID_MARGIN = 10; // Minimum number of pixels between the active game area and the window
 
-// Semi-constant variables
+// Semi-constant variables initialized once the document is ready
+
+/**
+ * createjs.Stage instance responsible for drawing on the canvas
+ * @type {createjs.Shape}
+ */
 let STAGE = null;
+
+/**
+ * The grid is an empty element, whose repeated background pattern draws the game's grid.
+ * @type {jQuery}
+ */
 let GRID = null;
+
+/**
+ * The grid selector is a box on top of the grid, with which the user can modify the game's area.
+ * @type {jQuery}
+ */
 let GRID_SELECTOR = null;
+
+/**
+ * The siblings are boxes for graying out the area outside of the game.
+ * @type {{top: jQuery, right: jQuery, bottom: jQuery, left: jQuery}}
+ */
 let GRID_SELECTOR_SIBLINGS = {
     top: null, right: null, bottom: null, left: null
 };
+
+/**
+ * The settings menu element.
+ * @type {jQuery}
+ */
 let MENU = null;
-let DENSITY_VALUE_DISPLAY = null;
+
+/**
+ * Material design slider for setting the field initialization density.
+ * @type {MDCSlider}
+ */
 let DENSITY_SLIDER = null;
+
+/**
+ * Material design slider for setting the speed.
+ * @type {MDCSlider}
+ */
 let SPEED_SLIDER = null;
 
 // Global variables
-let cellSize = 24;
-let field = [];
-let shapes = [];
-let patternPreviewShapes = [];
-let infiniteEdges = true;
-let incrementalUpdates = false;
-let editCellsOnClick = true;
-let cellColor = '#3F51B5';
+let cellSize = 24; // Cell width and height in pixels
 
+/**
+ * The model
+ * @type {Field}
+ */
+let field = null;
+
+/**
+ * The shapes of the cells for drawing on the canvas.
+ * @type {Array<createjs.Shape>}
+ */
+let shapes = [];
+
+/**
+ * The shapes of the pattern preview cells for drawing on the canvas.
+ * @type {Array<createjs.Shape>}
+ */
+let patternPreviewShapes = [];
+
+// Initialize the game when the document is ready
 $(function () {
     // Initialize the semi-constants
     STAGE = new createjs.Stage('canvas');
@@ -57,12 +85,17 @@ $(function () {
     GRID_SELECTOR_SIBLINGS.bottom = $('#grid-selector-bottom');
     GRID_SELECTOR_SIBLINGS.left = $('#grid-selector-left');
     MENU = $('#menu');
-    DENSITY_VALUE_DISPLAY = $('#density-value-display');
 
-    // Initialize the grid
+    // Initialize the grid and controls
     fitCanvasToGrid();
     updateCellSize(cellSize);
-    initGridSelector();
+    initializeGridSelector();
+    initializeControls();
+
+    // Initialize the model
+    const numRows = getSelectedGridRows();
+    const numColumns = getSelectedGridColumns();
+    field = new Field(numRows, numColumns);
 
     // Respond to window resizing
     $(window).resize(function () {
@@ -71,69 +104,53 @@ $(function () {
             // On resize end / pause
             fitCanvasToGrid();
             alignGridSelector();
-            updateField();
+            updateFieldSize();
 
             // Resizing will mess up the sliders
-            initializeSliders();
+            initializeSettingsSliders();
         }, 250);
-    });
-
-    // Initialize the menu
-    initializeSliders();
-
-    // Initialize the checkboxes
-    mdc.checkbox.MDCCheckbox.attachTo(document.querySelector('.mdc-checkbox'));
-
-    const infiniteEdgesCheckbox = $('#infinite-edges-checkbox');
-    infiniteEdgesCheckbox.prop('checked', infiniteEdges);
-    infiniteEdgesCheckbox.click(function () {
-        infiniteEdges = infiniteEdgesCheckbox.prop('checked');
-    });
-
-    const incrementalUpdatesCheckbox = $('#incremental-updates-checkbox');
-    incrementalUpdatesCheckbox.prop('checked', incrementalUpdates);
-    incrementalUpdatesCheckbox.click(function () {
-        incrementalUpdates = incrementalUpdatesCheckbox.prop('checked');
-    });
-
-    const editCellCheckbox = $('#edit-cells-checkbox');
-    editCellCheckbox.prop('checked', editCellsOnClick);
-    editCellCheckbox.click(function () {
-        editCellsOnClick = editCellCheckbox.prop('checked');
     });
 
     // Edit pixels on click on the grid
     GRID_SELECTOR.on('click.editCell', editCell);
 
-    $("#colorpicker").spectrum({
-        color: cellColor,
-        showPaletteOnly: true,
-        showPalette: true,
-        hideAfterPaletteSelect: true,
-        palette: [
-            ['#FFEB3B', '#FF9800', '#F44336', '#F50057'],
-            ['#2196F3', '#00BCD4', '#009688', '#4CAF50'],
-            ['#3F51B5', '#9C27B0', '#673AB7', '#000000']
-        ],
-        change: function (color) {
-            // Change the cell color
-            cellColor = color.toHexString();
-            updateShapes(true);
-        }
+    // Start the game
+    randomInit(DENSITY_SLIDER.value / 100);
+    createjs.Ticker.addEventListener('tick', function (event) {
+        if (!event.paused) tick();
     });
-    $('.sp-replacer').addClass('mdc-elevation--z3');
-    $('.sp-container').addClass('mdc-elevation--z3');
+    createjs.Ticker.setFPS(SPEED_SLIDER.value);
+});
 
-    $('#create-game-button').click(function () {
+/**
+ * Initializes the game's UI controls.
+ */
+function initializeControls() {
+    initializeSettingsMenu();
+    initializePatternMenu();
+
+    $('#pause-resume-button').click(togglePauseResume);
+    $('#next-step-button').click(function () {
         pause();
-        randomInit(DENSITY_SLIDER.value / 100);
-        MENU.hide();
+        tick();
     });
 
-    $('#clear-button').click(function () {
-        randomInit(0);
-        MENU.hide();
+    // Let the user start playing
+    let explanation = $('#explanation');
+    explanation.find('button').click(function () {
+        explanation.hide();
     });
+}
+
+/**
+ * Initializes the settings menu.
+ */
+function initializeSettingsMenu() {
+    // Initialize the menu elements
+    initializeSettingsSliders();
+    initializeSettingsCheckboxes();
+    initializeCellColorPicker();
+    initializeSettingsButtons();
 
     // Hide the menu on outside clicks
     $(document).click(function (event) {
@@ -144,51 +161,23 @@ $(function () {
         }
     });
 
-    // Initialize the buttons
+    // Activate the control for opening the menu
     $('#menu-button').click(() => {
         MENU.show('fast');
     });
-    $('#pause-resume-button').click(togglePauseResume);
-    $('#next-step-button').click(function () {
-        pause();
-        tick();
-    });
+}
 
-    // Initialize the insert-pattern menu
-    let insertPatternList = $('#insert-pattern-menu').find('ul');
-    Object.keys(PATTERNS).forEach(patternName => {
-        const pattern = PATTERNS[patternName];
-        if (!pattern) return;
-
-        const item = $('<li class="mdc-list-item" role="menuitem" tabindex="0"></li>');
-        item.html(patternName);
-        item.click(() => startInsertPatternMode(pattern));
-        insertPatternList.append(item);
-    });
-    let insertPatternMenu = new mdc.menu.MDCSimpleMenu(
-        document.querySelector('#insert-pattern-menu')
-    );
-    // Add event listener to some button to toggle the menu on and off.
-    $('#insert-pattern-button').click(() => {
-        insertPatternMenu.open = !insertPatternMenu.open;
-    });
-
-    // Let the user start playing
-    let explanation = $('#explanation');
-    explanation.find('button').click(function () {
-        explanation.hide();
-    });
-
-    // Start the game
-    randomInit(DENSITY_SLIDER.value / 100);
-    createjs.Ticker.addEventListener('tick', function (event) {
-        if (!event.paused) tick();
-    });
-    createjs.Ticker.setFPS(SPEED_SLIDER.value);
-});
-
-function initializeSliders() {
-    let menuWasVisible = MENU.is(":visible") && MENU.hasClass('no-interaction-menu--open');
+/**
+ * Initializes the sliders in the settings menu.
+ *
+ * This sets the global SPEED_SLIDER and DENSITY_SLIDER variables. The MDCSlider instance's UI is
+ * updated based on the values read when it is instantiated. Thus, we have to display the menu and
+ * then hide it again after the slider's initialization. Also, this function needs to be called on
+ * window size changes.
+ */
+function initializeSettingsSliders() {
+    // Display the menu for instantiating the sliders
+    let menuWasVisible = MENU.is(':visible') && MENU.hasClass('no-interaction-menu--open');
     MENU.addClass('no-interaction-menu--open');
     if (!menuWasVisible) MENU.show();
 
@@ -201,15 +190,104 @@ function initializeSliders() {
 
     DENSITY_SLIDER = new mdc.slider.MDCSlider(document.querySelector('#density-slider'));
     DENSITY_SLIDER.step = 1;
-    DENSITY_SLIDER.listen('MDCSlider:input', () =>
-        DENSITY_VALUE_DISPLAY.html(DENSITY_SLIDER.value)
-    );
-
-    DENSITY_VALUE_DISPLAY.html(DENSITY_SLIDER.value);
+    const densityDisplay = $('#density-value-display');
+    DENSITY_SLIDER.listen('MDCSlider:input', () => {
+        densityDisplay.html(DENSITY_SLIDER.value);
+    });
+    densityDisplay.html(DENSITY_SLIDER.value);
 
     if (!menuWasVisible) MENU.hide();
 }
 
+/**
+ * Initializes the checkboxes in the settings menu.
+ */
+function initializeSettingsCheckboxes() {
+    mdc.checkbox.MDCCheckbox.attachTo(document.querySelector('.mdc-checkbox'));
+
+    const infiniteEdgesCheckbox = $('#infinite-edges-checkbox');
+    infiniteEdgesCheckbox.prop('checked', true);
+
+    const incrementalUpdatesCheckbox = $('#incremental-updates-checkbox');
+    incrementalUpdatesCheckbox.prop('checked', false);
+
+    const editCellCheckbox = $('#edit-cells-checkbox');
+    editCellCheckbox.prop('checked', true);
+}
+
+/**
+ * Initializes the cell color picker.
+ */
+function initializeCellColorPicker() {
+    let picker = $('#colorpicker');
+    picker.spectrum({
+        color: DEFAULT_CELL_COLOR,
+        showPaletteOnly: true,
+        showPalette: true,
+        hideAfterPaletteSelect: true,
+        palette: [
+            ['#FFEB3B', '#FF9800', '#F44336', '#F50057'],
+            ['#2196F3', '#00BCD4', '#009688', '#4CAF50'],
+            ['#3F51B5', '#9C27B0', '#673AB7', '#000000']
+        ],
+        change: function (color) {
+            // Change the cell color
+            updateShapes(true);
+        }
+    });
+    $('.sp-replacer').addClass('mdc-elevation--z3');
+    $('.sp-container').addClass('mdc-elevation--z3');
+
+    picker.val(DEFAULT_CELL_COLOR);
+}
+
+/**
+ * Initializes the buttons in the settings menu.
+ */
+function initializeSettingsButtons() {
+    $('#create-game-button').click(function () {
+        pause();
+        randomInit(DENSITY_SLIDER.value / 100);
+        MENU.hide();
+    });
+
+    $('#clear-button').click(function () {
+        // Create a game with zero density
+        randomInit(0);
+        MENU.hide();
+    });
+}
+
+/**
+ * Initializes the menu for inserting patterns.
+ */
+function initializePatternMenu() {
+    // Fill the list of patterns
+    let insertPatternList = $('#insert-pattern-menu').find('ul');
+    Object.keys(PATTERNS).forEach(patternName => {
+        const pattern = PATTERNS[patternName];
+        const item = $('<li class="mdc-list-item" role="menuitem" tabindex="0"></li>');
+        item.html(patternName);
+
+        // Set the listener for inserting the pattern
+        item.click(() => startInsertPatternMode(pattern));
+
+        insertPatternList.append(item);
+    });
+
+    let insertPatternMenu = new mdc.menu.MDCSimpleMenu(
+        document.querySelector('#insert-pattern-menu')
+    );
+
+    // Activate the control for opening the menu
+    $('#insert-pattern-button').click(() => {
+        insertPatternMenu.open = !insertPatternMenu.open;
+    });
+}
+
+/**
+ * Resizes the game's canvas to fit it to the dimensions of the grid.
+ */
 function fitCanvasToGrid() {
     // Let the canvas fill the game area
     $('canvas').each(function (_, el) {
@@ -219,21 +297,28 @@ function fitCanvasToGrid() {
     });
 }
 
+/**
+ * Flips the cell at the position given by the click event if cell-editing is activated.
+ * @param {!Event} event
+ */
 function editCell(event) {
-    if (!editCellsOnClick || MENU.is(":visible")) return;
+    // Return if cell-editing is deactivated or the click closed the menu.
+    let editCellsOnClick = $('#edit-cells-checkbox').prop('checked');
+    if (!editCellsOnClick || MENU.is(':visible')) return;
 
-    const [column, row] = getMouseCellCoords(event);
-
-    if (row < field.length && column < field[row].length) {
-        field[row][column] = !field[row][column];
-        drawFieldUpdates([{
-            row: row,
-            column: column,
-            alive: field[row][column]
-        }]);
+    const [row, column] = getMouseCellCoords(event);
+    const fieldUpdate = field.flipCell(row, column);
+    if (fieldUpdate) {
+        drawFieldUpdates([fieldUpdate]);
     }
 }
 
+/**
+ * Displays a preview of the given pattern at the mouse position and draws the pattern onto the
+ * field when the grid is clicked.
+ * @param {!Array<Array<number>>} pattern - An array of <row, column> tuples. Each entry
+ *      contains the coordinates of a living cell relative to the given center coordinates.
+ */
 function startInsertPatternMode(pattern) {
     // Cancel a possibly active preview mode
     stopInsertPatternMode();
@@ -244,35 +329,26 @@ function startInsertPatternMode(pattern) {
 
     // Show the pattern where the mouse is
     GRID_SELECTOR.mousemove(function (event) {
-        let [centerColumn, centerRow] = getMouseCellCoords(event);
-        showPatternPreview(pattern, centerColumn, centerRow);
+        let [centerRow, centerColumn] = getMouseCellCoords(event);
+        showPatternPreview(pattern, centerRow, centerColumn);
     });
 
+    // Insert the pattern on click.
     GRID_SELECTOR.on('click.insertPattern', function (event) {
-        let [centerColumn, centerRow] = getMouseCellCoords(event);
+        let [centerRow, centerColumn] = getMouseCellCoords(event);
 
         // Set the pattern in the field
-        let fieldUpdates = [];
-        for (let cell of pattern) {
-            let row = cell[0] + centerRow;
-            let column = cell[1] + centerColumn;
-
-            if (0 <= row && row < field.length && 0 <= column && column < field[row].length) {
-                field[row][column] = true;
-                fieldUpdates.push({
-                    row: row,
-                    column: column,
-                    alive: true
-                });
-            }
-        }
+        const fieldUpdates = field.setPattern(pattern, centerRow, centerColumn);
+        drawFieldUpdates(fieldUpdates);
 
         // Stop the pattern previews
         stopInsertPatternMode();
-        drawFieldUpdates(fieldUpdates);
     });
 }
 
+/**
+ * Stops an active insert pattern mode. See startInsertPatternMode() for more details.
+ */
 function stopInsertPatternMode() {
     hidePatternPreview();
     // Cancel a possibly active preview mode
@@ -281,20 +357,32 @@ function stopInsertPatternMode() {
     GRID_SELECTOR.on('click.editCell', editCell);
 }
 
+/**
+ * Returns the row and column of a mouse event relative to the active game area.
+ * @param {!Event} event
+ * @returns {[!number, !number]}
+ */
 function getMouseCellCoords(event) {
     // Get the mouse position relative to the grid
     let gridOffset = GRID_SELECTOR.offset();
     let x = event.pageX - gridOffset.left;
     let y = event.pageY - gridOffset.top;
 
-    let column = Math.floor(x / cellSize);
     let row = Math.floor(y / cellSize);
-    return [column, row];
+    let column = Math.floor(x / cellSize);
+    return [row, column];
 }
 
-function showPatternPreview(pattern, centerColumn, centerRow) {
-    // Only manipulate the shapes, not the field
-
+/**
+ * Displays a pattern in preview mode. This means the cells are colored with the
+ * PATTERN_PREVIEW_COLOR but they do not actually influence the game. Thus, this does not manipulate
+ * the field, only the canvas.
+ * @param {!Array<Array<number>>} pattern - An array of <row, column> tuples. Each entry
+ *      contains the coordinates of a living cell relative to the given center coordinates.
+ * @param {!number} centerRow - The row of the pattern's center.
+ * @param {!number} centerColumn - The column of the pattern's center.
+ */
+function showPatternPreview(pattern, centerRow, centerColumn) {
     // Delete the previous pattern
     hidePatternPreview();
 
@@ -310,6 +398,7 @@ function showPatternPreview(pattern, centerColumn, centerRow) {
         }
 
         const shape = getCellShape(column, row, PATTERN_PREVIEW_COLOR);
+
         // Add at the front so they can be found easily when hiding the pattern
         STAGE.addChildAt(shape, 0);
         patternPreviewShapes.push(shape);
@@ -317,16 +406,25 @@ function showPatternPreview(pattern, centerColumn, centerRow) {
     STAGE.update();
 }
 
+/**
+ * Hides a possibly displayed pattern in preview mode. See showPatternPreview() for more details.
+ */
 function hidePatternPreview() {
     for (let shape of patternPreviewShapes) {
         STAGE.removeChild(shape);
     }
 }
 
+/**
+ * Pauses the game / the field updates
+ */
 function pause() {
     if (!createjs.Ticker.paused) togglePauseResume();
 }
 
+/**
+ * Pauses or resumes the game / the field updates
+ */
 function togglePauseResume() {
     let button = $('#pause-resume-button');
     createjs.Ticker.paused = !createjs.Ticker.paused;
@@ -334,18 +432,33 @@ function togglePauseResume() {
     button.find('.material-icons').first().html(icon);
 }
 
-function getGSRows() {
+/**
+ * Returns the number of rows based on the grid selector. This constitutes the rows of the active
+ * game area.
+ * @returns {!Number} - The number of rows
+ */
+function getSelectedGridRows() {
     return parseFloat(GRID_SELECTOR.attr('data-rows'));
 }
 
-function getGSColumns() {
+
+/**
+ * Returns the number of columns based on the grid selector. This constitutes the columns of the
+ * active game area.
+ * @returns {!Number} - The number of columns
+ */
+function getSelectedGridColumns() {
     return parseFloat(GRID_SELECTOR.attr('data-columns'));
 }
 
-function initGridSelector() {
+/**
+ * Initializes the grid selector and its ability to resize the game area.
+ */
+function initializeGridSelector() {
+    // Let the grid selector fill all available space
     alignGridSelector(Infinity, Infinity);
 
-    // Taken from http://interactjs.io/
+    // Make the grid selector / active game area resizable
     interact('#grid-selector')
         .resizable({
             edges: {
@@ -356,7 +469,8 @@ function initGridSelector() {
             }
         })
         .on('resizemove', function (event) {
-            // If the rect exceeds the visible grid in the bottom right, increase the visible grid
+            // If the rect exceeds the visible grid in the bottom right, increase the number of rows
+            // and columns
             if (event.rect.right >= GRID.width() - getMarginCells() * cellSize &&
                 event.rect.bottom >= GRID.height() - getMarginCells() * cellSize) {
                 increaseGrid();
@@ -378,6 +492,10 @@ function initGridSelector() {
         });
 }
 
+/**
+ * Increases the number of rows and columns by decreasing the cell size exponentially. The minimum
+ * cell size is 4px. This will update the shapes / the canvas but not the model's field size.
+ */
 function increaseGrid() {
     // Change the grid
     let newCellSize = Math.max(cellSize * 0.9, 4);
@@ -390,20 +508,38 @@ function increaseGrid() {
     updateShapes();
 }
 
+/**
+ * Updates the grid's cell size. This does not update the shapes on the canvas nor the model.
+ * @param {!number} newCellSize - The new cell size in px.
+ */
 function updateCellSize(newCellSize) {
-    // Round to 0 decimal places for the px value in CSS. The cell size needs to rounded accordingly
-    // Otherwise the grid pattern background won't align with the canvas and grid selector
+    // Round to 0 decimal places for the px value in CSS. The cell size needs to be rounded
+    // accordingly, otherwise the grid pattern background won't align with the canvas and grid
+    // selector.
     cellSize = Math.round(newCellSize * 10) / 10;
+    let imageUrl = "src/img/grid32@2x.png";
+    if (8 < cellSize && cellSize <= 16) {
+        imageUrl = "src/img/grid16@2x.png";
+    } else if (4 < cellSize && cellSize <= 8) {
+        imageUrl = "src/img/grid8@2x.png";
+    } else if (cellSize <= 4) {
+        imageUrl = "src/img/grid4@2x.png";
+    }
 
     // Update the grid
     const styleVal = cellSize * 10 + 'px ' + cellSize * 10 + 'px';
     GRID.css('background-size', styleVal);
+    GRID.css('background-image', 'url("' + imageUrl + '")');
 }
 
+/**
+ * Fits the grid to the available space given by the window while preserving the ratio between
+ * columns and rows.
+ */
 function fitGrid() {
     // Make the grid fill at least one dimension
-    let columns = getGSColumns();
-    let rows = getGSRows();
+    let columns = getSelectedGridColumns();
+    let rows = getSelectedGridRows();
 
     // Increase the cell size until maxRows <= rows or maxColumns <= columns
     // We cannot calculate the exact factor for increasing the cell size because a ratio like
@@ -416,23 +552,57 @@ function fitGrid() {
     }
     updateCellSize(newCellSize);
     alignGridSelector(columns, rows);
-    updateField();
+    updateFieldSize();
 }
 
+/**
+ * Returns the maximum number of grid columns for a hypothetical cell size based on the grid's
+ * width.
+ * @param {!number} _cellSize - The hypothetical cell size in px.
+ * @returns {!number} - The number of columns
+ */
 function getMaxGridColumns(_cellSize) {
     _cellSize = (typeof _cellSize != 'undefined') ? _cellSize : cellSize;
     return Math.floor(GRID.width() / _cellSize) - 2 * getMarginCells(_cellSize);
 }
 
+
+/**
+ * Returns the maximum number of grid rows for a hypothetical cell size based on the grid's height.
+ * @param {!number} _cellSize - The hypothetical cell size in px.
+ * @returns {!number} - The number of rows
+ */
 function getMaxGridRows(_cellSize) {
     _cellSize = (typeof _cellSize != 'undefined') ? _cellSize : cellSize;
     return Math.floor(GRID.height() / _cellSize) - 2 * getMarginCells(_cellSize);
 }
 
+/**
+ * Returns the number of margin cells needed to fulfill the minimum grid margin [px] based on a
+ * given cell size.
+ * @param {!number} _cellSize - The cell size in px.
+ * @returns {!number} - The number of cells
+ */
+function getMarginCells(_cellSize) {
+    _cellSize = (typeof _cellSize != 'undefined') ? _cellSize : cellSize;
+    return Math.ceil(MIN_GRID_MARGIN / _cellSize);
+}
+
+/**
+ * Align the grid selector to the grid based on the given number of columns and rows. These can be
+ * floating point numbers of any value (also Infinity). The grid selector element will always align
+ * with the grid's cells, fill at most the grid and at least 5x5 cells.
+ *
+ * Use getSelectedGridRows() and getSelectedGridColumns() to retrieve the grid selectors actual row
+ * and column count.
+ *
+ * @param {!number} desiredColumns - Desired number of columns. May be a float.
+ * @param {!number} desiredRows - Desired number of rows. May be a float.
+ */
 function alignGridSelector(desiredColumns, desiredRows) {
     // Default is to keep the same number of columns and rows
-    if (typeof desiredColumns == 'undefined') desiredColumns = getGSColumns();
-    if (typeof desiredRows == 'undefined') desiredRows = getGSRows();
+    if (typeof desiredColumns == 'undefined') desiredColumns = getSelectedGridColumns();
+    if (typeof desiredRows == 'undefined') desiredRows = getSelectedGridRows();
 
     // Stay within the grid
     desiredColumns = Math.max(desiredColumns, 5);
@@ -448,11 +618,14 @@ function alignGridSelector(desiredColumns, desiredRows) {
     updateGridSelector(roundedColumns * cellSize, roundedRows * cellSize);
 }
 
-function getMarginCells(_cellSize) {
-    _cellSize = (typeof _cellSize != 'undefined') ? _cellSize : cellSize;
-    return Math.ceil(GRID_MARGIN / _cellSize);
-}
-
+/**
+ * Updates the grid selector's position and size. This will also update the grid selector's
+ * siblings, which are boxes for graying out the area outside of the active game area.
+ * @param {!number} width - Number of pixels.
+ * @param {!number} height - Number of pixels.
+ * @param {!number} x - Number of pixels from the left.
+ * @param {!number} y - Number of pixels from the top.
+ */
 function updateGridSelector(width, height, x, y) {
     // If x and y are not specified, set them to the top left
     let margin = getMarginCells() * cellSize;
@@ -475,110 +648,74 @@ function updateGridSelector(width, height, x, y) {
     GRID_SELECTOR_SIBLINGS.right.height(height);
 }
 
+/**
+ * Calculates the next generation / step of the field and draws it to the canvas
+ */
 function tick() {
     // Update the field and draw it
-    let updates = [];
-    let newField = [];
-
-    for (let row = 0; row < field.length; row++) {
-        let newRow = [];
-        for (let column = 0; column < field[row].length; column++) {
-            const neighborsCount = getNeighborsCount(row, column);
-            const willBeAlive = neighborsCount == 3 || neighborsCount == 2 && field[row][column];
-
-            // Set an update if necessary
-            if (willBeAlive != field[row][column]) {
-                updates.push({
-                    row: row,
-                    column: column,
-                    alive: willBeAlive
-                });
-            }
-            newRow.push(willBeAlive);
-
-            // Incremental cell updates that can be used by the following cells
-            if (incrementalUpdates) field[row][column] = willBeAlive;
-        }
-        newField.push(newRow)
-    }
-    field = newField;
+    let infiniteEdges = $('#infinite-edges-checkbox').prop('checked');
+    let incrementalUpdates = $('#incremental-updates-checkbox').prop('checked');
+    let updates = field.step(infiniteEdges, incrementalUpdates);
     drawFieldUpdates(updates);
 }
 
-function getNeighborsCount(cellRow, cellColumn) {
-    const rowIndices = [cellRow - 1, cellRow, cellRow + 1];
-    const columnIndices = [cellColumn - 1, cellColumn, cellColumn + 1];
-
-    let neighborsCount = 0;
-    for (let rowIndex of rowIndices) {
-        // Handle out of bounds cases
-        if (!infiniteEdges && (rowIndex < 0 || rowIndex >= field.length)) continue;
-        let row = rowIndex.mod(field.length);
-
-        for (let columnIndex of columnIndices) {
-            // Handle out of bounds cases
-            if (!infiniteEdges && (columnIndex < 0 || columnIndex >= field[row].length)) continue;
-            let column = columnIndex.mod(field[row].length);
-
-            // Check the neighbor
-            if (field[row][column] == true && !(row == cellRow && column == cellColumn)) {
-                neighborsCount += 1;
-
-                // Return early for too many neighbors
-                if (neighborsCount > 3) return neighborsCount;
-            }
-        }
-    }
-    return neighborsCount;
-}
-
+/**
+ * Redraws the complete field cell by cell to the canvas. When updating a few cells, use
+ * drawFieldUpdates() for a more efficient way.
+ */
 function drawField() {
-    for (let row = 0; row < field.length; row++) {
-        for (let column = 0; column < field[row].length; column++) {
-            shapes[row][column].visible = field[row][column] == true;
-        }
-    }
+    field.forEach((row, column, isAlive) => {
+        shapes[row][column].visible = isAlive;
+    });
     STAGE.update();
 }
 
+/**
+ * Updates the game's canvas based on a given array of field updates.
+ * @param {!Array<FieldUpdate>} updates
+ */
 function drawFieldUpdates(updates) {
     for (let update of updates) {
-        shapes[update.row][update.column].visible = update.alive;
+        shapes[update.row][update.column].visible = update.isAlive;
     }
     STAGE.update();
 }
 
-function updateField() {
-    const numRows = getGSRows();
-    const numColumns = getGSColumns();
+/**
+ * Randomly (re)initializes the field and canvas with a given cell density
+ * @param {!number} density - The probability of a cell being active.
+ */
+function randomInit(density) {
+    // Make sure the field matches the current grid selectors dimensions
+    updateFieldSize();
+    field.randomInit(density);
+    drawField();
+}
 
-    // Crop rows if necessary
-    field = field.slice(0, numRows);
-    // Add rows if necessary
-    if (field.length < numRows) {
-        const newRows = new Array(numRows - field.length).fill([]);
-        Array.prototype.push.apply(field, newRows);
-    }
+/**
+ * Updates the field's and shapes' sizes according to the number of columns and rows given by the
+ * grid selector element.
+ */
+function updateFieldSize() {
+    const numRows = getSelectedGridRows();
+    const numColumns = getSelectedGridColumns();
 
-    for (let row = 0; row < field.length; row++) {
-        // Crop columns if necessary
-        field[row] = field[row].slice(0, numColumns);
-        // Add columns if necessary
-        if (field[row].length < numColumns) {
-            const newColumns = new Array(numColumns - field[row].length).fill(false);
-            Array.prototype.push.apply(field[row], newColumns);
-        }
-    }
+    field.updateSize(numRows, numColumns);
 
     // Make sure the shapes always match the field
     updateShapes();
-
-    return field;
 }
 
+
+/**
+ * Updates the shapes array's dimensions according to the number of columns and rows given by the
+ * grid selector element.
+ * @param {boolean} force - If True, the shapes will be recreated, even if the dimensions of the
+ *      shapes array already match the grid selector's dimensions.
+ */
 function updateShapes(force = false) {
-    const numRows = getGSRows();
-    const numColumns = getGSColumns();
+    const numRows = getSelectedGridRows();
+    const numColumns = getSelectedGridColumns();
 
     // Don't set new shapes if the dimensions match the field
     if (!force && shapes.length == numRows && shapes[0].length == numColumns) return;
@@ -589,6 +726,7 @@ function updateShapes(force = false) {
         let shapesRow = [];
         for (let column = 0; column < numColumns; column++) {
             // Create the shape
+            const cellColor = $('#colorpicker').val() || DEFAULT_CELL_COLOR;
             const shape = getCellShape(column, row, cellColor);
             shape.visible = false;
             STAGE.addChild(shape);
@@ -600,6 +738,14 @@ function updateShapes(force = false) {
     drawField();
 }
 
+/**
+ * Returns a new cell shape for drawing onto the canvas with the given coordinates and color.
+ * @param {!number} column - The cell's column.
+ * @param {!number} row - The cell's row.
+ * @param {!String} color - A CSS compatible color value (ex. "red", "#FF0000", or
+ * "rgba(255,0,0,0.5)"). Setting to null will result in no fill.
+ * @returns {createjs.Shape}
+ */
 function getCellShape(column, row, color) {
     let margin = getMarginCells();
 
@@ -608,15 +754,4 @@ function getCellShape(column, row, color) {
         .beginFill(color)
         .drawRect((column + margin) * cellSize, (row + margin) * cellSize, cellSize, cellSize);
     return shape;
-}
-
-function randomInit(density) {
-    // Make sure the field matches the current grid selectors dimensions
-    updateField();
-    for (let row = 0; row < getGSRows(); row++) {
-        for (let column = 0; column < getGSColumns(); column++) {
-            field[row][column] = Math.random() <= density;
-        }
-    }
-    drawField();
 }

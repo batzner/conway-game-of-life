@@ -1,7 +1,7 @@
 {
   "name": "conway-game-of-life",
   "version": "1.0.0",
-  "description": "",
+  "description": "A web implementation of Conway's Game of Life",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -16,9 +16,6 @@
     "url": "https://github.com/batzner/conway-game-of-life/issues"
   },
   "homepage": "https://github.com/batzner/conway-game-of-life#readme",
-  "dependencies": {
-    "material-components-web": "^0.20.0"
-  },
   "devDependencies": {
     "babel-core": "^6.26.0",
     "babel-polyfill": "^6.23.0",
@@ -26,12 +23,8 @@
     "gulp": "^3.9.1",
     "gulp-babel": "latest",
     "gulp-clean": "latest",
-    "gulp-clean-css": "^3.7.0",
-    "gulp-concat": "^2.6.1",
     "gulp-eslint": "^4.0.0",
     "gulp-imagemin": "^3.3.0",
-    "gulp-merge": "^0.1.1",
-    "gulp-rename": "^1.2.2",
     "gulp-uglify": "latest"
   }
 }
