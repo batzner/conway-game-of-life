@@ -16,9 +16,6 @@
     "url": "https://github.com/batzner/conway-game-of-life/issues"
   },
   "homepage": "https://github.com/batzner/conway-game-of-life#readme",
-  "dependencies": {
-    "material-components-web": "^0.20.0"
-  },
   "devDependencies": {
     "babel-core": "^6.26.0",
     "babel-polyfill": "^6.23.0",
