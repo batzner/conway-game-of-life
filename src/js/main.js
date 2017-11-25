@@ -54,7 +54,7 @@ let DENSITY_SLIDER = null;
 let SPEED_SLIDER = null;
 
 // Global variables
-let cellSize = 24; // Cell width and height in pixels
+let cellSize = 12; // Cell width and height in pixels
 
 /**
  * The model
@@ -206,7 +206,7 @@ function initializeSettingsCheckboxes() {
     mdc.checkbox.MDCCheckbox.attachTo(document.querySelector('.mdc-checkbox'));
 
     const infiniteEdgesCheckbox = $('#infinite-edges-checkbox');
-    infiniteEdgesCheckbox.prop('checked', true);
+    infiniteEdgesCheckbox.prop('checked', false);
 
     const incrementalUpdatesCheckbox = $('#incremental-updates-checkbox');
     incrementalUpdatesCheckbox.prop('checked', false);
