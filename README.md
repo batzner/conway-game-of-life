@@ -1,6 +1,6 @@
-[![](https://raw.githubusercontent.com/batzner/conway-game-of-life/master/showcase.gif)](http://mlowl.com/conway-game-of-life/)
+[![](https://raw.githubusercontent.com/batzner/conway-game-of-life/master/showcase.gif)](https://batzner.github.io/conway-game-of-life/)
 
-**Showcase:** [mlowl.com/conway-game-of-life/](http://mlowl.com/conway-game-of-life/)
+**Showcase:** [batzner.github.io/conway-game-of-life/](https://batzner.github.io/conway-game-of-life/)
 
 ## Setup
 
