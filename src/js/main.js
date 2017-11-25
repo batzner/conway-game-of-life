@@ -206,7 +206,7 @@ function initializeSettingsCheckboxes() {
     mdc.checkbox.MDCCheckbox.attachTo(document.querySelector('.mdc-checkbox'));
 
     const infiniteEdgesCheckbox = $('#infinite-edges-checkbox');
-    infiniteEdgesCheckbox.prop('checked', true);
+    infiniteEdgesCheckbox.prop('checked', false);
 
     const incrementalUpdatesCheckbox = $('#incremental-updates-checkbox');
     incrementalUpdatesCheckbox.prop('checked', false);
