@@ -54,7 +54,7 @@ let DENSITY_SLIDER = null;
 let SPEED_SLIDER = null;
 
 // Global variables
-let cellSize = 24; // Cell width and height in pixels
+let cellSize = 12; // Cell width and height in pixels
 
 /**
  * The model
