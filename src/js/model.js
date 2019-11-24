@@ -106,12 +106,12 @@ class Field {
             for (let column = 0; column < this.field[row].length; column++) {
                 // Calculate the new status
                 const neighborsCount = this.getNeighborsCount(row, column, infiniteEdges);
-                const willBeAlive = (neighborsCount == 3 ||
-                neighborsCount == 2 && this.field[row][column]);
+                const willBeAlive = (neighborsCount === 3 ||
+                    neighborsCount === 2 && this.field[row][column]);
                 newRow.push(willBeAlive);
 
                 // Set an update if necessary
-                if (willBeAlive != this.field[row][column]) {
+                if (willBeAlive !== this.field[row][column]) {
                     const update = new FieldUpdate(row, column, willBeAlive);
                     updates.push(update);
                 }
@@ -160,7 +160,7 @@ class Field {
      */
     isInBounds(row, column) {
         return (0 <= row && row < this.field.length &&
-        0 <= column && column < this.field[row].length);
+            0 <= column && column < this.field[row].length);
     }
 
     /**
@@ -207,7 +207,8 @@ class Field {
                 let column = positiveMod(columnIndex, this.field[row].length);
 
                 // Check the neighbor
-                if (this.field[row][column] == true && !(row == cellRow && column == cellColumn)) {
+                if (this.field[row][column] === true &&
+                        !(row === cellRow && column === cellColumn)) {
                     neighborsCount += 1;
                 }
             }

@@ -501,7 +501,7 @@ function increaseGrid() {
     let newCellSize = Math.max(cellSize * 0.9, 4);
 
     // Check if there is nothing to do
-    if (cellSize == newCellSize) return;
+    if (cellSize === newCellSize) return;
     updateCellSize(newCellSize);
 
     // Don't update the field, only the shapes
@@ -718,7 +718,7 @@ function updateShapes(force = false) {
     const numColumns = getSelectedGridColumns();
 
     // Don't set new shapes if the dimensions match the field
-    if (!force && shapes.length == numRows && shapes[0].length == numColumns) return;
+    if (!force && shapes.length === numRows && shapes[0].length === numColumns) return;
 
     shapes = [];
     STAGE.removeAllChildren();
