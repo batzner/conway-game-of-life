@@ -12,10 +12,10 @@ For older browsers, see **Production** below.
 
 ### Production / Deployment
 
-1. Switch to the `gh-pages` branch.
-2. Run `npm install` in the project's root directory.
-3. Run `gulp` in the project's root directory. This will transpile and minify the .js files to ECMAScript 5 and include [Babel's polyfill](https://babeljs.io/docs/usage/polyfill/).
-4. Open `index.html` with IE11+ or any modern browser.
+1. Run `npm install` in the project's root directory.
+2. Run `gulp` in the project's root directory. This will transpile and minify the .js files to ECMAScript 5 and include [Babel's polyfill](https://babeljs.io/docs/usage/polyfill/).
+3. Open `dist/index.html` with IE11+ or any modern browser.
+4. (optional) Run `./publish.sh` on the `master` branch to publish the site to the `gh-pages` branch. Might be worth to take a look at `./publish.sh` before to see what it does.
 
 ## Functionality
 
@@ -32,5 +32,4 @@ Add new patterns by modifying `src/js/patterns.js`.
 
 ## Limitations
 
-- The browser window should have a minimum height of 540px for the menus to be fully visible.
-- In Firefox, the dashed outline of the game area is displaced at the lower and right edges. This is due to the Firefox outline descendants bug: [https://bugzilla.mozilla.org/show_bug.cgi?id=687311](https://bugzilla.mozilla.org/show_bug.cgi?id=687311)
+The browser window should have a minimum height of 540px for the menus to be fully visible.
