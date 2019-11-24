@@ -13,18 +13,21 @@
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/batzner/conway-game-of-life/issues"
+    "url": "https://github.com/batzner/conway-game-of-li~fe/issues"
   },
   "homepage": "https://github.com/batzner/conway-game-of-life#readme",
   "devDependencies": {
-    "babel-core": "^6.26.0",
-    "babel-polyfill": "^6.23.0",
-    "babel-preset-es2015": "^6.24.1",
-    "gulp": "^3.9.1",
-    "gulp-babel": "latest",
-    "gulp-clean": "latest",
-    "gulp-eslint": "^4.0.0",
-    "gulp-imagemin": "^3.3.0",
-    "gulp-uglify": "latest"
+    "babel-core": "~6.26.0",
+    "babel-polyfill": "~6.26.0",
+    "babel-preset-es2015": "~6.24.1",
+    "gulp": "~3.9.1",
+    "gulp-babel": "~7.0.0",
+    "gulp-clean": "~0.3.2",
+    "gulp-eslint": "~4.0.0",
+    "gulp-htmlmin": "~3.0.0",
+    "gulp-imagemin": "~3.3.0",
+    "gulp-minify-css": "~1.2.4",
+    "gulp-minify-inline": "~1.1.0",
+    "gulp-uglify": "~3.0.0"
   }
 }
