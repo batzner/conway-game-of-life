@@ -4,7 +4,7 @@
 
 ## Setup
 
-**Open `index.html`**
+**Open `src/index.html`**
 
 if you have a browser supporting ECMAScript 6 (Chrome 60+, Firefox 55+ or Safari 10+).
 
