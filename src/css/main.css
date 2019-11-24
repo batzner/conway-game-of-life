@@ -185,8 +185,6 @@ a {
     width: 12px;
     bottom: calc(50% - 6px);
     right: calc(50% - 6px);
-    background-color: white;
-    color: black;
 }
 
 .resize-button .material-icons {
